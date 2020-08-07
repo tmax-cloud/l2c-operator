@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: l2c-operator
+subjects:
+- kind: ServiceAccount
+  name: l2c-operator
+roleRef:
+  kind: Role
+  name: l2c-operator
+  apiGroup: rbac.authorization.k8s.io
