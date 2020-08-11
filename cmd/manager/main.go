@@ -9,14 +9,6 @@ import (
 	"runtime"
 	"strings"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"k8s.io/client-go/rest"
-
-	"github.com/tmax-cloud/l2c-operator/pkg/apis"
-	"github.com/tmax-cloud/l2c-operator/pkg/controller"
-	"github.com/tmax-cloud/l2c-operator/version"
-
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	kubemetrics "github.com/operator-framework/operator-sdk/pkg/kube-metrics"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
@@ -26,11 +18,18 @@ import (
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"github.com/tmax-cloud/l2c-operator/pkg/apis"
+	"github.com/tmax-cloud/l2c-operator/pkg/controller"
+	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
+	"github.com/tmax-cloud/l2c-operator/version"
 )
 
 // Change below variables to serve metrics on different host or port.
@@ -132,6 +131,23 @@ func main() {
 	addMetrics(ctx, cfg)
 
 	log.Info("Starting the Cmd.")
+
+	// Start SonarQube
+	sonar, err := sonarqube.NewSonarQube()
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+	go sonar.Start()
+
+	log.Info("Waiting for SonarQube to be ready")
+	if <-sonar.Ready {
+		log.Info("SonarQube is ready!")
+	}
+
+	// Start SonarQube Webhook
+	webhook := sonarqube.NewWebhook()
+	go webhook.Start()
 
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {
