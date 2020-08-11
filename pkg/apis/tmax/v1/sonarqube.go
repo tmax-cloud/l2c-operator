@@ -1,17 +1,17 @@
-package sonarqube
+package v1
 
-type IssueResult struct {
+type SonarIssueResult struct {
 	Total       int32               `json:"total"`
 	P           int32               `json:"p"`
 	Ps          int32               `json:"ps"`
 	Paging      map[string]int32    `json:"paging"`
 	EffortTotal int32               `json:"effortTotal"`
 	DebtTotal   int32               `json:"deptTotal"`
-	Issues      []Issue             `json:"issues"`
+	Issues      []SonarIssue        `json:"issues"`
 	Components  []map[string]string `json:"components"`
 }
 
-type Issue struct {
+type SonarIssue struct {
 	Key          string              `json:"key"`
 	Component    string              `json:"component"`
 	Project      string              `json:"project"`
@@ -35,19 +35,19 @@ type Issue struct {
 	Transitions  []string            `json:"transitions"`
 	Actions      []string            `json:"actions"`
 	TextRange    map[string]int32    `json:"textRange"`
-	Flows        []Flow              `json:"flows"`
+	Flows        []SonarFlow         `json:"flows"`
 }
 
-type Flow struct {
-	Locations []Location `json:"locations"`
+type SonarFlow struct {
+	Locations []SonarLocation `json:"locations"`
 }
 
-type Location struct {
+type SonarLocation struct {
 	Message   string           `json:"msg"`
 	TextRange map[string]int32 `json:"textRange"`
 }
 
-type Token struct {
+type SonarToken struct {
 	Login     string `json:"login"`
 	Name      string `json:"name"`
 	Token     string `json:"token"`

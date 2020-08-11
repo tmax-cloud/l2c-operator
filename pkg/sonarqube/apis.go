@@ -3,6 +3,7 @@ package sonarqube
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -39,7 +40,7 @@ func (s *SonarQube) GenerateToken() (string, error) {
 		return "", fmt.Errorf(string(resultBytes))
 	}
 
-	result := &Token{}
+	result := &v1.SonarToken{}
 	if err := json.Unmarshal(resultBytes, result); err != nil {
 		return "", err
 	}

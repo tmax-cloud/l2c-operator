@@ -1,24 +1,145 @@
 package v1
 
 import (
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // L2cSpec defines the desired state of L2c
 type L2cSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// Was migration configuration
+	Was *L2cWas `json:"was"`
+
+	// Db migration configuration
+	Db *L2cDb `json:"db,omitempty"`
+}
+
+type L2cWas struct {
+	// Package server URL that would be used while building the application
+	WasPackageServer string `json:"wasPackageServerUrl,omitempty"`
+
+	// WAS source configuration
+	From *L2cWasFrom `json:"from"`
+
+	// WAS destination configuration
+	To *L2cWasTo `json:"to"`
+}
+
+type L2cGit struct {
+	// URL of git repository
+	Url string `json:"url"`
+
+	// Revision to be used as a source
+	Revision string `json:"revision,omitempty"`
+}
+
+type L2cImage struct {
+	// Image URL where the built application image is stored
+	Url string `json:"url"`
+
+	// Secret name that contains a credential to access registry, if the image registry needs credentials to push or pull an image
+	RegSecret string `json:"regSecret,omitempty"`
+}
+
+type L2cWasFrom struct {
+	// Current WAS type
+	// +kubebuilder:validation:Enum=wildfly
+	Type string `json:"type"`
+
+	// Git information for WAS source code
+	Git *L2cGit `json:"git"`
+}
+
+type L2cWasTo struct {
+	// Target WAS type, to be migrated
+	// +kubebuilder:validation:Enum=jeus
+	Type string `json:"type"`
+
+	// Image, in which the built application image would be saved
+	Image *L2cImage `json:"image"`
+
+	// Port number WAS would use
+	Port int32 `json:"port"`
+
+	// Service type WAS would use
+	// +kubebuilder:validation:Enum=ClusterIP;LoadBalancer;NodePort
+	ServiceType string `json:"serviceType,omitempty"`
+}
+
+type L2cDb struct {
+	// DB source configuration
+	From *L2cDbFrom `json:"from"`
+
+	// DB destination configuration
+	To *L2cDbTo `json:"to"`
+}
+
+type L2cDbFrom struct {
+	// Current DB type
+	// +kubebuilder:validation:Enum=oracle
+	Type string `json:"type,omitempty"`
+
+	// Current DB host
+	// +kubebuilder:validation:Pattern=(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
+	Host string `json:"host,omitempty"`
+
+	// Current DB port
+	Port int32 `json:"port,omitempty"`
+
+	// Current DB user
+	User string `json:"user,omitempty"`
+
+	// Current DB password
+	Password string `json:"password,omitempty"`
+
+	// Current DB SID
+	Sid string `json:"sid,omitempty"`
+}
+
+type L2cDbTo struct {
+	// Target DB type, to be migrated
+	// +kubebuilder:validation:Enum=tibero
+	Type string `json:"type,omitempty"`
+
+	// Storage size of target DB
+	StorageSize string `json:"storageSize,omitempty"`
+
+	// User for target DB
+	User string `json:"user,omitempty"`
+
+	// Password for target DB
+	Password string `json:"password,omitempty"`
 }
 
 // L2cStatus defines the observed state of L2c
 type L2cStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// Pipeline name for the L2c
+	PipelineName string `json:"pipelineName,omitempty"`
+
+	// PipelineRun name for the L2c
+	PipelineRunName string `json:"pipelineRunName,omitempty"`
+
+	Conditions []metav1.TableRowCondition `json:"conditions"`
+
+	// Status of each Task
+	TaskStatus []L2cTaskStatus `json:"taskStatus"`
+
+	// VSCode URL
+	EditorUrl string `json:"editorUrl"`
+
+	// VSCode access code
+	EditorCode string `json:"editorCode"`
+
+	// SonarQube issues
+	SonarIssues []SonarIssue `json:"sonarIssues"`
+}
+
+type L2cTaskStatus struct {
+	//
+	TaskRunName string `json:"taskRunName"`
+
+	//
+	tektonv1.TaskRunStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
