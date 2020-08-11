@@ -8,11 +8,9 @@ import (
 func pipeline(name, ns string) *tektonv1.Pipeline {
 	return &tektonv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:      name,
 			Namespace: ns,
 		},
-		Spec: tektonv1.PipelineSpec{
-
-		},
+		Spec: tektonv1.PipelineSpec{},
 	}
 }
