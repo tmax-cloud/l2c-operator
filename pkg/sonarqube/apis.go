@@ -67,7 +67,7 @@ func (s *SonarQube) ChangePassword(new string) error {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Error(err, fmt.Sprintf("hmm %d", resp.StatusCode))
+		log.Error(err, fmt.Sprintf("status code:  %d", resp.StatusCode))
 		return fmt.Errorf(string(resultBytes))
 	}
 
@@ -79,32 +79,27 @@ func (s *SonarQube) ChangePassword(new string) error {
 func (s *SonarQube) reqHttp(method string, path string, data map[string]string, header map[string]string) (*http.Response, error) {
 	uri, err := url.Parse(s.URL + path)
 	if err != nil {
-		log.Error(err, "PARSE")
 		return nil, err
 	}
 
-	var bodyReader io.Reader
-
 	// Query or Body
-	if data != nil {
-		params := url.Values{}
-		for k, v := range data {
-			params.Set(k, v)
-		}
-		encoded := params.Encode()
+	params := url.Values{}
+	for k, v := range data {
+		params.Set(k, v)
+	}
+	encoded := params.Encode()
 
-		// Query string if it's get
-		if strings.ToLower(method) == "get" {
-			uri.RawQuery = encoded
-		} else {
-			bodyReader = strings.NewReader(params.Encode())
-		}
+	// Query string if it's get, else, body
+	var bodyReader io.Reader
+	if strings.ToLower(method) == "get" {
+		uri.RawQuery = encoded
+	} else {
+		bodyReader = strings.NewReader(params.Encode())
 	}
 
 	client := &http.Client{}
 	req, err := http.NewRequest(method, uri.String(), bodyReader)
 	if err != nil {
-		log.Error(err, "REQ")
 		return nil, err
 	}
 
@@ -112,10 +107,8 @@ func (s *SonarQube) reqHttp(method string, path string, data map[string]string, 
 	if bodyReader != nil {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
-	if header != nil {
-		for k, v := range header {
-			req.Header.Set(k, v)
-		}
+	for k, v := range header {
+		req.Header.Set(k, v)
 	}
 
 	// Auth
@@ -127,7 +120,6 @@ func (s *SonarQube) reqHttp(method string, path string, data map[string]string, 
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error(err, "RESP")
 		return nil, err
 	}
 
