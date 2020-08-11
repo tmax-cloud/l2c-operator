@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
+	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
 const (
@@ -39,7 +40,7 @@ func (s *SonarQube) GenerateToken() (string, error) {
 		return "", fmt.Errorf(string(resultBytes))
 	}
 
-	result := &Token{}
+	result := &tmaxv1.SonarToken{}
 	if err := json.Unmarshal(resultBytes, result); err != nil {
 		return "", err
 	}

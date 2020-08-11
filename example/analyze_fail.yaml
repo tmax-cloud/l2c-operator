@@ -1,0 +1,29 @@
+apiVersion: tmax.io/v1
+kind: L2c
+metadata:
+  name: l2c-analyze-fail
+spec:
+  was:
+    from:
+      type: wildfly
+      git:
+        url: https://github.com/taejune/my-weblogic-playground.git
+    to:
+      type: jeus
+      image:
+        url: 172.22.11.2:30500/wildfly-test
+      port: 8808
+      serviceType: NodePort
+  db:
+    from:
+      type: oracle
+      host: 192.168.6.129
+      port: 49161
+      user: system
+      password: oracle
+      sid: XE
+    to:
+      type: tibero
+      storageSize: 1Gi
+      user: TMAX
+      password: TMAX

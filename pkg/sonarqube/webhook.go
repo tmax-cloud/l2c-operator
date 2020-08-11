@@ -22,7 +22,7 @@ func NewWebhook() *Webhook {
 
 func (w *Webhook) Start() {
 	addr := fmt.Sprintf("0.0.0.0:%d", Port)
-	log.Info("SonarQube webhook is running on %s", addr)
+	log.Info(fmt.Sprintf("SonarQube webhook is running on %s", addr))
 	if err := http.ListenAndServe(addr, w.Handler); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
