@@ -16,6 +16,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/metrics"
 	sdkVersion "github.com/operator-framework/operator-sdk/version"
 	"github.com/spf13/pflag"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -113,6 +114,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	sonar, err := sonarqube.NewSonarQube()
+	if err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
 	log.Info("Registering Components.")
 
 	// Setup Scheme for all resources
@@ -120,9 +127,13 @@ func main() {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+	if err := tektonv1.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr); err != nil {
+	if err := controller.AddToManager(mgr, sonar); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
@@ -133,11 +144,6 @@ func main() {
 	log.Info("Starting the Cmd.")
 
 	// Start SonarQube
-	sonar, err := sonarqube.NewSonarQube()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
 	go sonar.Start()
 
 	log.Info("Waiting for SonarQube to be ready")
