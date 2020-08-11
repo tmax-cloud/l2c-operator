@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: l2c-operator
+  namespace: l2c-system
 spec:
   replicas: 1
   selector:
@@ -15,16 +16,13 @@ spec:
       serviceAccountName: l2c-operator
       containers:
         - name: l2c-operator
-          # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: 172.22.11.2:30500/l2c-operator:v0.0.1
           command:
           - l2c-operator
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              value: ""
             - name: POD_NAME
               valueFrom:
                 fieldRef:
