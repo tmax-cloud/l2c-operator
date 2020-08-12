@@ -113,6 +113,9 @@ type L2cDbTo struct {
 
 // L2cStatus defines the observed state of L2c
 type L2cStatus struct {
+	// Completed timestamp
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
 	// Pipeline name for the L2c
 	PipelineName string `json:"pipelineName,omitempty"`
 
@@ -125,10 +128,10 @@ type L2cStatus struct {
 	TaskStatus []L2cTaskStatus `json:"taskStatus"`
 
 	// VSCode URL
-	EditorUrl string `json:"editorUrl"`
+	EditorUrl string `json:"editorUrl,omitempty"`
 
 	// VSCode access code
-	EditorCode string `json:"editorCode"`
+	EditorCode string `json:"editorCode,omitempty"`
 
 	// SonarQube issues
 	SonarIssues []SonarIssue `json:"sonarIssues"`

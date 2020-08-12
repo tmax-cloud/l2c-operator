@@ -1,5 +1,6 @@
 package v1
 
+// Issues
 type SonarIssueResult struct {
 	Total       int32               `json:"total"`
 	P           int32               `json:"p"`
@@ -47,9 +48,52 @@ type SonarLocation struct {
 	TextRange map[string]int32 `json:"textRange"`
 }
 
+// Tokens
 type SonarToken struct {
 	Login     string `json:"login"`
 	Name      string `json:"name"`
 	Token     string `json:"token"`
 	CreatedAt string `json:"createdAt"`
+}
+
+// Profiles
+type SonarProfileResult struct {
+	Profiles []SonarProfile  `json:"profiles"`
+	Actions  map[string]bool `json:"actions"`
+}
+
+type SonarProfile struct {
+	Key                       string          `json:"key"`
+	Name                      string          `json:"name"`
+	Language                  string          `json:"language"`
+	LanguageName              string          `json:"languageName"`
+	IsInherited               bool            `json:"isInherited"`
+	IsDefault                 bool            `json:"isDefault"`
+	ActiveRuleCount           int32           `json:"activeRuleCount"`
+	ActiveDeprecatedRuleCount int32           `json:"activeDeprecatedRuleCount"`
+	RulesUpdatedAt            string          `json:"rulesUpdatedAt"`
+	Organization              string          `json:"organization"`
+	IsBuiltIn                 bool            `json:"isBuiltIn"`
+	Actions                   map[string]bool `json:"actions"`
+}
+
+// Projects
+type SonarProjectResult struct {
+	Paging     map[string]int32 `json:"paging"`
+	Components []SonarProject   `json:"components"`
+}
+
+type SonarProject struct {
+	Organization     string `json:"organization"`
+	Key              string `json:"key"`
+	Name             string `json:"name"`
+	Qualifier        string `json:"qualifier"`
+	Visibility       string `json:"visibility"`
+	LastAnalysisDate string `json:"lastAnalysisDate"`
+	Revision         string `json:"revision"`
+}
+
+// Webhooks
+type SonarWebhookResult struct {
+	Webhooks []map[string]string `json:"webhooks"`
 }

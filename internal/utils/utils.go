@@ -3,6 +3,7 @@ package utils
 import (
 	"math/rand"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -22,4 +23,9 @@ func RandString(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func ToAlphaNumeric(s string) string {
+	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
+	return reg.ReplaceAllString(s, "-")
 }
