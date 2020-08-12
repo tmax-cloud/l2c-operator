@@ -2,6 +2,7 @@ package l2c
 
 import (
 	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
@@ -81,6 +82,8 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling L2c")
 
+	finalizer := "finalizer.l2c.tmax.io"
+
 	// Fetch the L2c instance
 	instance := &tmaxv1.L2c{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
@@ -95,30 +98,95 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// Create & Set rule for SonarQube
+	// If queued to be deleted, clean up SonarQube project
+	if instance.GetDeletionTimestamp() != nil {
+		if err := r.sonarQube.DeleteProject(instance.Name); err != nil {
+			return reconcile.Result{}, err
+		}
+		controllerutil.RemoveFinalizer(instance, finalizer)
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			log.Error(err, "cannot remove finalizer")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// If finalizer is not set, set finalizer
+	if len(instance.GetFinalizers()) == 0 {
+		controllerutil.AddFinalizer(instance, finalizer)
+		if err := r.client.Update(context.TODO(), instance); err != nil {
+			log.Error(err, "cannot add finalizer")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// Set default Conditions
+	if len(instance.Status.Conditions) == 0 {
+		instance.Status.SetDefaults()
+		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			log.Error(err, "cannot update status")
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	}
+
+	// PipelineRun status check & do something & return
 	// TODO
 
+	// Create SonarQube Project
+	if err := r.sonarQube.CreateProject(instance.Name); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+	// Set QualityProfiles
+	if err := r.sonarQube.SetQualityProfiles(instance.Name, instance.Spec.Was.From.Type); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+
 	// Generate Pipeline
-	pipeline := pipeline(instance.Name, instance.Namespace)
+	pipeline := pipeline(instance)
 	if err := controllerutil.SetControllerReference(instance, pipeline, r.scheme); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	// Check if this Pod already exists
+	// Check if this Pipeline already exists
 	found := &tektonv1.Pipeline{}
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pipeline.Name, Namespace: pipeline.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Pipeline", "Pipeline.Namespace", pipeline.Namespace, "Pipeline.Name", pipeline.Name)
-		err = r.client.Create(context.TODO(), pipeline)
-		if err != nil {
+		if err := r.client.Create(context.TODO(), pipeline); err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "creating pipeline failed", err.Error()); err != nil {
+				return reconcile.Result{}, err
+			}
 			return reconcile.Result{}, err
 		}
-
-		// Pod created successfully - don't requeue
 		return reconcile.Result{}, nil
 	} else if err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "error getting pipeline", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Set Project Ready!
+	if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionTrue, "all ready", "project is ready to run"); err != nil {
 		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key metav1.RowConditionType, status metav1.ConditionStatus, reason, message string) error {
+	instance.Status.SetCondition(key, status, reason, message)
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		log.Error(err, "cannot update status")
+		return err
+	}
+	return nil
 }

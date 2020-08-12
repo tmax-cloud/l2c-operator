@@ -226,7 +226,14 @@ WatchLoop:
 
 	log.Info("SonarQube deployment is ready!")
 
+	// Update PW/Token
 	if err := s.UpdateCred(); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// Register webhook
+	if err := s.RegisterWebhook(); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
