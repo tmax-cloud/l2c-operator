@@ -93,3 +93,19 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - apiregistration.k8s.io
+  resources:
+  - apiservices
+  resourceNames:
+  - v1.l2crun.tmax.io
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create

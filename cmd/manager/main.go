@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"os"
 	"runtime"
 	"strings"
@@ -154,6 +155,10 @@ func main() {
 	// Start SonarQube Webhook
 	webhook := sonarqube.NewWebhook()
 	go webhook.Start()
+
+	// Start extension API server for l2c/run
+	extServer := apiserver.New()
+	go extServer.Start()
 
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

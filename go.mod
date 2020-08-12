@@ -3,12 +3,15 @@ module github.com/tmax-cloud/l2c-operator
 go 1.13
 
 require (
+	github.com/gorilla/mux v1.7.4
 	github.com/operator-framework/operator-sdk v0.17.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tektoncd/pipeline v0.15.2
 	k8s.io/api v0.18.7-rc.0
 	k8s.io/apimachinery v0.18.7-rc.0
 	k8s.io/client-go v12.0.0+incompatible
+	k8s.io/kube-aggregator v0.17.3
+	knative.dev/pkg v0.0.0-20200711004937-22502028e31a
 	sigs.k8s.io/controller-runtime v0.6.1
 )
 

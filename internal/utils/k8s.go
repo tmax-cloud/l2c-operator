@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/tmax-cloud/l2c-operator/internal"
 )
 
 func Namespace() (string, error) {
@@ -23,4 +25,12 @@ func Namespace() (string, error) {
 		}
 		return ns, nil
 	}
+}
+
+func ApiServiceName() string {
+	svcName := os.Getenv("API_SERVICE_NAME")
+	if svcName == "" {
+		svcName = internal.ServiceName
+	}
+	return svcName
 }
