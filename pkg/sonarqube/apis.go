@@ -27,7 +27,7 @@ func (s *SonarQube) GenerateToken() (string, error) {
 		"name":  tokenName,
 	}
 	result := &tmaxv1.SonarToken{}
-	if  err := s.reqHttp(MethodPost, "/api/user_tokens/generate", data, nil, result); err != nil {
+	if err := s.reqHttp(MethodPost, "/api/user_tokens/generate", data, nil, result); err != nil {
 		return "", err
 	}
 
@@ -90,7 +90,7 @@ func (s *SonarQube) DeleteProject(name string) error {
 	return nil
 }
 
-func (s *SonarQube) GetQualityProfiles(names []string) ([]tmaxv1.SonarProfile, error){
+func (s *SonarQube) GetQualityProfiles(names []string) ([]tmaxv1.SonarProfile, error) {
 	profileSelector := ""
 	if names != nil {
 		profileSelector = strings.Join(names, ",")
@@ -178,9 +178,9 @@ func (s *SonarQube) RegisterWebhook() error {
 	}
 
 	// Register webhook
-	data := map[string]string {
+	data := map[string]string{
 		"name": WebhookName,
-		"url": addr,
+		"url":  addr,
 	}
 
 	if err := s.reqHttp(MethodPost, "/api/webhooks/create", data, nil, nil); err != nil {
@@ -194,9 +194,9 @@ func (s *SonarQube) RegisterWebhook() error {
 
 func (s *SonarQube) UpdateWebhook(key, uri string) error {
 	data := map[string]string{
-		"name": WebhookName,
+		"name":    WebhookName,
 		"webhook": key,
-		"url": uri,
+		"url":     uri,
 	}
 	if err := s.reqHttp(MethodPost, "/api/webhooks/update", data, nil, nil); err != nil {
 		return err

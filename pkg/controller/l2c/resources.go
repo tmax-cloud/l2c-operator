@@ -18,15 +18,3 @@ func pipeline(l2c *tmaxv1.L2c) *tektonv1.Pipeline {
 		},
 	}
 }
-
-func pipelineRun(l2c *tmaxv1.L2c) *tektonv1.PipelineRun {
-	return &tektonv1.PipelineRun{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: l2c.Name,
-			Namespace: l2c.Namespace,
-		},
-		Spec: tektonv1.PipelineRunSpec{
-
-		},
-	}
-}
