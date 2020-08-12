@@ -163,6 +163,10 @@ spec:
         status:
           description: L2cStatus defines the observed state of L2c
           properties:
+            completionTime:
+              description: Completed timestamp
+              format: date-time
+              type: string
             conditions:
               items:
                 description: TableRowCondition allows a row to be marked with additional
@@ -5480,8 +5484,6 @@ spec:
               type: array
           required:
           - conditions
-          - editorCode
-          - editorUrl
           - sonarIssues
           - taskStatus
           type: object
