@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY build/_output/bin/scan-waiter /scan-waiter
+
+ENTRYPOINT ["/scan-waiter"]

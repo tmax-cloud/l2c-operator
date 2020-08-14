@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1alpha1
+kind: ClusterTask
+metadata:
+  name: l2c-sonar-scan-java-gradle
+spec:
+  description: Sonar scan task for Java Gradle projects
+  params:
+    - name: sonar-url
+      description: Sonar Qube server URL
+    - name: sonar-token
+      description: Token for sonar qube
+    - name: sonar-project-id
+      description: Project ID in sonar qube
+  resources:
+    inputs:
+      - name: git-source
+        type: git
+  steps:
+    - name: build-and-scan
+      image: gradle:6.4
+      imagePullPolicy: Always
+      script: |
+        sed -i '1iplugins{\n  id "org.sonarqube" version "2.7"\n}' build.gradle
+        gradle sonarqube -Dsonar.host.url=$(params.sonar-url) -Dsonar.login=$(params.sonar-token) -Dsonar.projectKey=$(params.sonar-project-id)
+      workingDir: /workspace/git-source
+    - name: waiter
+      image: 172.22.11.2:30500/l2c-scan-waiter:v0.0.1
+      imagePullPolicy: Always
+      command:
+        - /scan-waiter
+        - wait
