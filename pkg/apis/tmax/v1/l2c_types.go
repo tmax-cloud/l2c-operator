@@ -134,7 +134,10 @@ type L2cStatus struct {
 	EditorCode string `json:"editorCode,omitempty"`
 
 	// SonarQube issues
-	SonarIssues []SonarIssue `json:"sonarIssues"`
+	SonarIssues []CodeIssue `json:"sonarIssues"`
+}
+
+type CodeIssue struct {
 }
 
 type L2cTaskStatus struct {

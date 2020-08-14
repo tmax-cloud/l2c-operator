@@ -1,99 +1,147 @@
 package v1
 
+//QualityGates
+// +k8s:deepcopy-gen=false
+type SonarQualityGateCreateResult struct {
+	ID int32 `json:"id"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityGateListResult struct {
+	QualityGates []SonarQubeQualityGate `json:"qualitygates"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityGate struct {
+	ID        int32  `json:"id"`
+	Name      string `json:"name"`
+	IsDefault bool   `json:"isDefault"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityGateShowResult struct {
+	Conditions []SonarQubeQualityGateCondition
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityGateCondition struct {
+	ID     int32  `json:"id"`
+	Metric string `json:"metric"`
+	OP     string `json:"op"`
+	Error  string `json:"error"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// QualityProfiles
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityProfileListResult struct {
+	Profiles []SonarQubeQualityProfile `json:"profiles"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarQubeQualityProfile struct {
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Language string `json:"language"`
+
+	X map[string]interface{} `json:"-"`
+}
+
 // Issues
+// +k8s:deepcopy-gen=false
 type SonarIssueResult struct {
-	Total       int32               `json:"total"`
-	P           int32               `json:"p"`
-	Ps          int32               `json:"ps"`
-	Paging      map[string]int32    `json:"paging"`
-	EffortTotal int32               `json:"effortTotal"`
-	DebtTotal   int32               `json:"deptTotal"`
-	Issues      []SonarIssue        `json:"issues"`
-	Components  []map[string]string `json:"components"`
+	Issues []SonarIssue `json:"issues"`
+
+	X map[string]interface{} `json:"-"`
 }
 
+// +k8s:deepcopy-gen=false
 type SonarIssue struct {
-	Key          string              `json:"key"`
-	Component    string              `json:"component"`
-	Project      string              `json:"project"`
-	Organization string              `json:"organization"`
-	Rule         string              `json:"rule"`
-	Status       string              `json:"status"`
-	Resolution   string              `json:"resolution"`
-	Severity     string              `json:"severity"`
-	Message      string              `json:"message"`
-	Line         int32               `json:"line"`
-	Hash         string              `json:"hash"`
-	Author       string              `json:"author"`
-	Effort       string              `json:"effort"`
-	Dept         string              `json:"dept"`
-	CreationDate string              `json:"creationDate"`
-	UpdateDate   string              `json:"updateDate"`
-	Tags         []string            `json:"tags"`
-	Type         string              `json:"type"`
-	Comments     []map[string]string `json:"comments"`
-	Attr         map[string]string   `json:"attr"`
-	Transitions  []string            `json:"transitions"`
-	Actions      []string            `json:"actions"`
-	TextRange    map[string]int32    `json:"textRange"`
-	Flows        []SonarFlow         `json:"flows"`
-}
-
-type SonarFlow struct {
-	Locations []SonarLocation `json:"locations"`
-}
-
-type SonarLocation struct {
-	Message   string           `json:"msg"`
-	TextRange map[string]int32 `json:"textRange"`
+	X map[string]interface{} `json:"-"`
 }
 
 // Tokens
+// +k8s:deepcopy-gen=false
 type SonarToken struct {
-	Login     string `json:"login"`
-	Name      string `json:"name"`
-	Token     string `json:"token"`
-	CreatedAt string `json:"createdAt"`
+	Token string `json:"token"`
+
+	X map[string]interface{} `json:"-"`
 }
 
 // Profiles
+// +k8s:deepcopy-gen=false
 type SonarProfileResult struct {
-	Profiles []SonarProfile  `json:"profiles"`
-	Actions  map[string]bool `json:"actions"`
+	Profiles []SonarProfile `json:"profiles"`
+
+	X map[string]interface{} `json:"-"`
 }
 
+// +k8s:deepcopy-gen=false
 type SonarProfile struct {
-	Key                       string          `json:"key"`
-	Name                      string          `json:"name"`
-	Language                  string          `json:"language"`
-	LanguageName              string          `json:"languageName"`
-	IsInherited               bool            `json:"isInherited"`
-	IsDefault                 bool            `json:"isDefault"`
-	ActiveRuleCount           int32           `json:"activeRuleCount"`
-	ActiveDeprecatedRuleCount int32           `json:"activeDeprecatedRuleCount"`
-	RulesUpdatedAt            string          `json:"rulesUpdatedAt"`
-	Organization              string          `json:"organization"`
-	IsBuiltIn                 bool            `json:"isBuiltIn"`
-	Actions                   map[string]bool `json:"actions"`
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Language string `json:"language"`
+
+	X map[string]interface{} `json:"-"`
 }
 
 // Projects
+// +k8s:deepcopy-gen=false
 type SonarProjectResult struct {
-	Paging     map[string]int32 `json:"paging"`
-	Components []SonarProject   `json:"components"`
-}
+	Components []interface{} `json:"components"`
 
-type SonarProject struct {
-	Organization     string `json:"organization"`
-	Key              string `json:"key"`
-	Name             string `json:"name"`
-	Qualifier        string `json:"qualifier"`
-	Visibility       string `json:"visibility"`
-	LastAnalysisDate string `json:"lastAnalysisDate"`
-	Revision         string `json:"revision"`
+	X map[string]interface{} `json:"-"`
 }
 
 // Webhooks
+// +k8s:deepcopy-gen=false
 type SonarWebhookResult struct {
-	Webhooks []map[string]string `json:"webhooks"`
+	Webhooks []SonarWebhook `json:"webhooks"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarWebhook struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarWebhookRequest struct {
+	Project     SonarWebhookProject     `json:"project"`
+	QualityGate SonarWebhookQualityGate `json:"qualityGate"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarWebhookProject struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarWebhookQualityGate struct {
+	Name   string `json:"name"`
+	Status string `json:"status"`
+
+	X map[string]interface{} `json:"-"`
 }
