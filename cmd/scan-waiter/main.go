@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 )
 
@@ -84,7 +84,7 @@ func watchDir() {
 }
 
 func createFile(result apis.ScanResult) {
-	filePath := apis.DirName+"/"+string(result)
+	filePath := apis.DirName + "/" + string(result)
 	_, err := fmt.Fprintf(os.Stdout, "Writing file %s\n", filePath)
 	if err != nil {
 		log.Fatal(err)

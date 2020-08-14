@@ -3,12 +3,12 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"net/http"
 	"os"
 	"path"
 
 	"github.com/gorilla/mux"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
@@ -18,6 +18,7 @@ import (
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
 	"github.com/tmax-cloud/l2c-operator/pkg/apiserver/apis"
+	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
 const (
@@ -31,7 +32,7 @@ type Server struct {
 	Client  client.Client
 }
 
-func New() *Server {
+func New(sonar *sonarqube.SonarQube) *Server {
 	var err error
 
 	server := &Server{}
@@ -39,7 +40,7 @@ func New() *Server {
 	server.Wrapper.Router = mux.NewRouter()
 	server.Wrapper.Router.HandleFunc("/", server.rootHandler)
 
-	if err := apis.AddApis(server.Wrapper); err != nil {
+	if err := apis.AddApis(server.Wrapper, sonar); err != nil {
 		log.Error(err, "cannot add apis")
 		os.Exit(1)
 	}

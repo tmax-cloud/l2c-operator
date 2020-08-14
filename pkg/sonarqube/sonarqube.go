@@ -2,14 +2,15 @@ package sonarqube
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 )
@@ -98,7 +99,7 @@ func NewSonarQube() (*SonarQube, error) {
 
 	return &SonarQube{
 		ClientSet:        clientSet,
-		URL:              fmt.Sprintf("http://%s:9000", resourceName),
+		URL:              fmt.Sprintf("http://%s.%s:9000", resourceName, ns),
 		Namespace:        ns,
 		ResourceName:     resourceName,
 		Image:            imageUrl,
@@ -228,6 +229,12 @@ WatchLoop:
 
 	// Update PW/Token
 	if err := s.UpdateCred(); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	// Set default QualityGate
+	if err := s.SetQualityGate(); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
