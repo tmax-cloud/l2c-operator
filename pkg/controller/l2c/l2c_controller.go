@@ -211,6 +211,29 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
+	// Generate ConfigMap
+	cm := configMap(instance)
+	if err := controllerutil.SetControllerReference(instance, cm, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+	foundCm := &corev1.ConfigMap{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cm.Name, Namespace: cm.Namespace}, foundCm)
+	if err != nil && errors.IsNotFound(err) {
+		reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
+		if err := r.client.Create(context.TODO(), cm); err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "creating configMap failed", err.Error()); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, nil
+	} else if err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "error getting configmap", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+
 	// Generate Pipeline
 	pipeline := pipeline(instance)
 	if err := controllerutil.SetControllerReference(instance, pipeline, r.scheme); err != nil {
