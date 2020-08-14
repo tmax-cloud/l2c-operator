@@ -1,0 +1,5 @@
+FROM scratch
+
+COPY build/_output/bin/db-deployer /db-deployer
+
+ENTRYPOINT ["/db-deployer"]
