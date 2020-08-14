@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"os"
 	"runtime"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
+	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"github.com/tmax-cloud/l2c-operator/pkg/controller"
 	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 	"github.com/tmax-cloud/l2c-operator/version"
@@ -115,11 +115,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Start SonarQube
 	sonar, err := sonarqube.NewSonarQube()
 	if err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}
+	go sonar.Start()
+
+	log.Info("Waiting for SonarQube to be ready")
+	if <-sonar.Ready {
+		log.Info("SonarQube is ready!")
+	}
+
+	// Start SonarQube Webhook
+	webhook := sonarqube.NewWebhook(mgr.GetClient())
+	go webhook.Start()
+
+	// Start extension API server for l2c/run
+	extServer := apiserver.New(sonar)
+	go extServer.Start()
 
 	log.Info("Registering Components.")
 
@@ -143,22 +158,6 @@ func main() {
 	addMetrics(ctx, cfg)
 
 	log.Info("Starting the Cmd.")
-
-	// Start SonarQube
-	go sonar.Start()
-
-	log.Info("Waiting for SonarQube to be ready")
-	if <-sonar.Ready {
-		log.Info("SonarQube is ready!")
-	}
-
-	// Start SonarQube Webhook
-	webhook := sonarqube.NewWebhook()
-	go webhook.Start()
-
-	// Start extension API server for l2c/run
-	extServer := apiserver.New()
-	go extServer.Start()
 
 	// Start the Cmd
 	if err := mgr.Start(signals.SetupSignalHandler()); err != nil {

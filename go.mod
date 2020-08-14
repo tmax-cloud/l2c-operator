@@ -3,10 +3,12 @@ module github.com/tmax-cloud/l2c-operator
 go 1.13
 
 require (
+	github.com/fsnotify/fsnotify v1.4.9
 	github.com/gorilla/mux v1.7.4
 	github.com/operator-framework/operator-sdk v0.17.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tektoncd/pipeline v0.15.2
+	github.com/tidwall/gjson v1.6.0
 	k8s.io/api v0.18.7-rc.0
 	k8s.io/apimachinery v0.18.7-rc.0
 	k8s.io/client-go v12.0.0+incompatible

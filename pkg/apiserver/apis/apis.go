@@ -8,6 +8,7 @@ import (
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
+	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
 const (
@@ -15,16 +16,16 @@ const (
 	ApiVersion = "v1"
 )
 
-var AddApiFuncs []func(*wrapper.RouterWrapper) error
+var AddApiFuncs []func(*wrapper.RouterWrapper, *sonarqube.SonarQube) error
 
-func AddApis(parent *wrapper.RouterWrapper) error {
+func AddApis(parent *wrapper.RouterWrapper, sonar *sonarqube.SonarQube) error {
 	apiWrapper := wrapper.New("/apis", nil, apisHandler)
 	if err := parent.Add(apiWrapper); err != nil {
 		return err
 	}
 
 	for _, f := range AddApiFuncs {
-		if err := f(apiWrapper); err != nil {
+		if err := f(apiWrapper, sonar); err != nil {
 			return err
 		}
 	}

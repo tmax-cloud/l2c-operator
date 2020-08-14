@@ -3,16 +3,21 @@ package v1
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
+	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
@@ -51,6 +56,11 @@ func runHandler(w http.ResponseWriter, req *http.Request) {
 
 	opt := client.Options{}
 	utils.AddSchemes(&opt, schema.GroupVersion{Group: "tmax.io", Version: "v1"}, &tmaxv1.L2c{})
+	if err := tektonv1.AddToScheme(opt.Scheme); err != nil {
+		log.Error(err, "")
+		_ = utils.RespondError(w, http.StatusInternalServerError, "could not initialize client")
+		return
+	}
 
 	c, err := utils.Client(opt)
 	if err != nil {
@@ -70,8 +80,55 @@ func runHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Info("RUN!")
-	// TODO : actual logic to run
+	// Check if L2c project is ready, if not, return error
+	readyCond, ok := l2c.Status.GetCondition(tmaxv1.ConditionKeyProjectReady)
+	if !ok || readyCond.Status != metav1.ConditionTrue {
+		_ = utils.RespondError(w, http.StatusAccepted, "L2c is not ready yet")
+		return
+	}
 
-	_ = utils.RespondJSON(w, l2c)
+	// Check if PipelineRun exists
+	pr := pipelineRun(l2c, sonar)
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: pr.Name, Namespace: pr.Namespace}, pr); err != nil {
+		// If an error other than not found error occurs, is error
+		if !errors.IsNotFound(err) {
+			log.Error(err, "")
+			_ = utils.RespondError(w, http.StatusInternalServerError, "cannot get PipelineRun")
+			return
+		}
+	} else {
+		// If pr is found but it's still running, send 202 status code
+		if pr.Status.CompletionTime == nil {
+			_ = utils.RespondError(w, http.StatusAccepted, "L2c process is still running")
+			return
+		}
+		// If it is complete, delete it first
+		if err := c.Delete(context.TODO(), pr); err != nil {
+			log.Error(err, "")
+			_ = utils.RespondError(w, http.StatusInternalServerError, "cannot delete existing PipelineRun")
+			return
+		}
+	}
+
+	// Now, we can create PR
+	pr = pipelineRun(l2c, sonar) // Intact pipelineRun for creation
+	s := runtime.NewScheme()
+	if err := apis.AddToScheme(s); err != nil {
+		log.Error(err, "")
+		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot make new scheme")
+		return
+	}
+	if err := controllerutil.SetControllerReference(l2c, pr, s); err != nil {
+		log.Error(err, "")
+		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot set ownerReference to PipelineRun")
+		return
+	}
+	if err := c.Create(context.TODO(), pr); err != nil {
+		log.Error(err, "")
+		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot create PipelineRun")
+		return
+	}
+
+	_ = utils.RespondJSON(w, map[string]string{"message": fmt.Sprintf("l2c %s has started", l2c.Name)})
+	log.Info(fmt.Sprintf("Created pipelineRun %s/%s", pr.Namespace, pr.Name))
 }

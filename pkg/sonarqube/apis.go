@@ -17,8 +17,15 @@ const (
 	MethodPost = "POST"
 	MethodGet  = "GET"
 
-	WebhookName = "global-webhook"
+	WebhookName     = "global-webhook"
+	QualityGateName = "migration"
 )
+
+func GetSonarProjectName(l2c *tmaxv1.L2c) string {
+	// Project key : <Namespace>_<Name>
+	// It's valid as l2c cannot have underscore(_) for its name/namespace
+	return fmt.Sprintf("%s_%s", l2c.Namespace, l2c.Name)
+}
 
 func (s *SonarQube) GenerateToken() (string, error) {
 	tokenName := s.AdminId + utils.RandString(5)
@@ -51,12 +58,77 @@ func (s *SonarQube) ChangePassword(new string) error {
 	return nil
 }
 
-func (s *SonarQube) CreateProject(name string) error {
-	key := utils.ToAlphaNumeric(name)
+func (s *SonarQube) SetQualityGate() error {
+	var gateId int32 = -1
+	isGateDefault := false
+	// Check if there exists QualityGate
+	listResult := &tmaxv1.SonarQubeQualityGateListResult{}
+	if err := s.reqHttp(MethodGet, "/api/qualitygates/list", nil, nil, listResult); err != nil {
+		return err
+	}
+	for _, g := range listResult.QualityGates {
+		if g.Name == QualityGateName {
+			gateId = g.ID
+			isGateDefault = g.IsDefault
+		}
+	}
 
+	// Create QualityGate only if gate is not found
+	if gateId < 0 {
+		createResult := &tmaxv1.SonarQualityGateCreateResult{}
+		if err := s.reqHttp(MethodPost, "/api/qualitygates/create", map[string]string{"name": QualityGateName}, nil, createResult); err != nil {
+			return err
+		}
+		gateId = createResult.ID
+		log.Info("Created a QualityGate")
+	}
+
+	condMetric := "violations"
+	condOP := "GT"
+	condError := fmt.Sprintf("%d", 0)
+
+	// Check if condition exists
+	showResult := &tmaxv1.SonarQubeQualityGateShowResult{}
+	if err := s.reqHttp(MethodGet, "/api/qualitygates/show", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, showResult); err != nil {
+		return err
+	}
+	condFound := false
+	for _, c := range showResult.Conditions {
+		if c.Metric == condMetric && c.OP == condOP && c.Error == condError {
+			condFound = true
+		}
+	}
+
+	// Set condition to the quality gate only if condition is not found
+	if !condFound {
+		conditionData := map[string]string{
+			"gateId": fmt.Sprintf("%d", gateId),
+			"metric": condMetric,
+			"op":     condOP,
+			"error":  condError,
+		}
+		if err := s.reqHttp(MethodPost, "/api/qualitygates/create_condition", conditionData, nil, nil); err != nil {
+			return err
+		}
+		log.Info("Created a QualityGate Condition")
+	}
+
+	// Set as default only if the gate is not a default
+	if !isGateDefault {
+		if err := s.reqHttp(MethodPost, "/api/qualitygates/set_as_default", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, nil); err != nil {
+			return err
+		}
+		log.Info("Set the QualityGate as default")
+	}
+
+	return nil
+}
+
+func (s *SonarQube) CreateProject(l2c *tmaxv1.L2c) error {
+	name := GetSonarProjectName(l2c)
 	// Search if there is project
 	getResult := &tmaxv1.SonarProjectResult{}
-	if err := s.reqHttp(MethodGet, "/api/projects/search", map[string]string{"projects": key}, nil, getResult); err != nil {
+	if err := s.reqHttp(MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
 		return err
 	}
 
@@ -67,33 +139,42 @@ func (s *SonarQube) CreateProject(name string) error {
 	// Create project
 	data := map[string]string{
 		"name":    name,
-		"project": key,
+		"project": name,
 	}
 	if err := s.reqHttp(MethodPost, "/api/projects/create", data, nil, nil); err != nil {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Created SonarQube project [%s/%s]", name, key))
+	log.Info(fmt.Sprintf("Created SonarQube project [%s]", name))
 
 	return nil
 }
 
-func (s *SonarQube) DeleteProject(name string) error {
-	key := utils.ToAlphaNumeric(name)
-
-	if err := s.reqHttp(MethodPost, "/api/projects/delete", map[string]string{"project": key}, nil, nil); err != nil {
+func (s *SonarQube) DeleteProject(l2c *tmaxv1.L2c) error {
+	name := GetSonarProjectName(l2c)
+	// Search if there is project
+	getResult := &tmaxv1.SonarProjectResult{}
+	if err := s.reqHttp(MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
 		return err
 	}
 
-	log.Info(fmt.Sprintf("Deleted SonarQube project [%s/%s]", name, key))
+	if len(getResult.Components) == 0 {
+		return nil
+	}
+
+	if err := s.reqHttp(MethodPost, "/api/projects/delete", map[string]string{"project": name}, nil, nil); err != nil {
+		return err
+	}
+
+	log.Info(fmt.Sprintf("Deleted SonarQube project [%s]", name))
 
 	return nil
 }
 
-func (s *SonarQube) GetQualityProfiles(names []string) ([]tmaxv1.SonarProfile, error) {
+func (s *SonarQube) GetQualityProfiles(profileNames []string) ([]tmaxv1.SonarProfile, error) {
 	profileSelector := ""
-	if names != nil {
-		profileSelector = strings.Join(names, ",")
+	if profileNames != nil {
+		profileSelector = strings.Join(profileNames, ",")
 	}
 
 	data := map[string]string{}
@@ -110,9 +191,8 @@ func (s *SonarQube) GetQualityProfiles(names []string) ([]tmaxv1.SonarProfile, e
 }
 
 // TODO : qualityProfile name should be revisited - sourceWAS is not enough!
-func (s *SonarQube) SetQualityProfiles(projectName string, sourceWas string) error {
-	key := utils.ToAlphaNumeric(projectName)
-
+func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error {
+	name := GetSonarProjectName(l2c)
 	// QualityProfile name - temporarily, same as targetWas
 	qualityProfile := sourceWas
 
@@ -122,18 +202,36 @@ func (s *SonarQube) SetQualityProfiles(projectName string, sourceWas string) err
 		return err
 	}
 
+	// Get Set QualityProfiles to the project
+	listResult := &tmaxv1.SonarQubeQualityProfileListResult{}
+	if err := s.reqHttp(MethodGet, "/api/qualityprofiles/search", map[string]string{"project": name}, nil, listResult); err != nil {
+		return err
+	}
+
 	// Set QualityProfiles for each found getResult
 	for _, p := range profiles {
+		// Check if profile is already set
+		isSet := false
+		for _, setP := range listResult.Profiles {
+			if p.Language == setP.Language && p.Key == setP.Key {
+				isSet = true
+				break
+			}
+		}
+		if isSet {
+			continue
+		}
+
 		data := map[string]string{
 			"language":       p.Language,
-			"project":        key,
+			"project":        name,
 			"qualityProfile": qualityProfile,
 		}
 		if err := s.reqHttp(MethodPost, "/api/qualityprofiles/add_project", data, nil, nil); err != nil {
 			return err
 		}
 
-		log.Info(fmt.Sprintf("Set SonarQube Porject %s quality profile %s/%s", key, p.Language, qualityProfile))
+		log.Info(fmt.Sprintf("Set SonarQube Porject %s quality profile %s/%s", name, p.Language, qualityProfile))
 	}
 
 	return nil
@@ -149,29 +247,17 @@ func (s *SonarQube) RegisterWebhook() error {
 	}
 
 	for _, w := range getResult.Webhooks {
-		name, exist := w["name"]
-		if !exist {
-			return fmt.Errorf("invalid webhook return %+v", w)
-		}
-		if name != WebhookName {
+		if w.Name != WebhookName {
 			continue
 		}
 
-		uri, exist := w["url"]
-		if !exist {
-			return fmt.Errorf("invalid webhook return %+v", w)
-		}
 		// Same name & Same addr -> don't need to do anything
-		if uri == addr {
+		if w.URL == addr {
 			return nil
 		}
 
 		// If same name & diff addr, update it
-		key, exist := w["key"]
-		if !exist {
-			return fmt.Errorf("invalid webhook return %+v", w)
-		}
-		if err := s.UpdateWebhook(key, addr); err != nil {
+		if err := s.UpdateWebhook(w.Key, addr); err != nil {
 			return err
 		}
 		return nil
