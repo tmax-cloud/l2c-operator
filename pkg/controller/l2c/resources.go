@@ -11,7 +11,13 @@ import (
 )
 
 func configMap(l2c *tmaxv1.L2c) *corev1.ConfigMap {
-	return &corev1.ConfigMap{}
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      l2c.Name,
+			Namespace: l2c.Namespace,
+		},
+		Data: map[string]string{},
+	}
 }
 
 func pipeline(l2c *tmaxv1.L2c) *tektonv1.Pipeline {
