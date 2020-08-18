@@ -77,38 +77,38 @@ type L2cDb struct {
 type L2cDbFrom struct {
 	// Current DB type
 	// +kubebuilder:validation:Enum=oracle
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
 
 	// Current DB host
 	// +kubebuilder:validation:Pattern=(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
-	Host string `json:"host,omitempty"`
+	Host string `json:"host"`
 
 	// Current DB port
-	Port int32 `json:"port,omitempty"`
+	Port int32 `json:"port"`
 
 	// Current DB user
-	User string `json:"user,omitempty"`
+	User string `json:"user"`
 
 	// Current DB password
-	Password string `json:"password,omitempty"`
+	Password string `json:"password"`
 
 	// Current DB SID
-	Sid string `json:"sid,omitempty"`
+	Sid string `json:"sid"`
 }
 
 type L2cDbTo struct {
 	// Target DB type, to be migrated
 	// +kubebuilder:validation:Enum=tibero
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
 
 	// Storage size of target DB
-	StorageSize string `json:"storageSize,omitempty"`
+	StorageSize string `json:"storageSize"`
 
 	// User for target DB
-	User string `json:"user,omitempty"`
+	User string `json:"user"`
 
 	// Password for target DB
-	Password string `json:"password,omitempty"`
+	Password string `json:"password"`
 }
 
 // L2cStatus defines the observed state of L2c

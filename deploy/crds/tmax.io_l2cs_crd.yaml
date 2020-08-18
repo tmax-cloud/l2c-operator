@@ -59,6 +59,13 @@ spec:
                     user:
                       description: Current DB user
                       type: string
+                  required:
+                  - host
+                  - password
+                  - port
+                  - sid
+                  - type
+                  - user
                   type: object
                 to:
                   description: DB destination configuration
@@ -77,6 +84,11 @@ spec:
                     user:
                       description: User for target DB
                       type: string
+                  required:
+                  - password
+                  - storageSize
+                  - type
+                  - user
                   type: object
               required:
               - from
