@@ -8,10 +8,17 @@ const (
 	ConditionKeyProjectReady   = status.ConditionType("ProjectReady")
 	ConditionKeyProjectRunning = status.ConditionType("ProjectRunning")
 
-	ConditionKeyAnalyze   = status.ConditionType("Analyze")
-	ConditionKeyDbMigrate = status.ConditionType("DBMigrate")
-	ConditionKeyBuild     = status.ConditionType("Build")
-	ConditionKeyDeploy    = status.ConditionType("Deploy")
+	ConditionKeyPhaseAnalyze   = status.ConditionType("PhaseAnalyze")
+	ConditionKeyPhaseDbMigrate = status.ConditionType("PhaseDBMigrate")
+	ConditionKeyPhaseBuild     = status.ConditionType("PhaseBuild")
+	ConditionKeyPhaseDeploy    = status.ConditionType("PhaseDeploy")
+)
+
+const (
+	ReasonPhaseRunning     = status.ConditionReason("Running")
+	ReasonPhaseFailed      = status.ConditionReason("Failed")
+	ReasonPhaseSucceeded   = status.ConditionReason("Succeeded")
+	ReasonPhaseNotExecuted = status.ConditionReason("Not executed yet")
 )
 
 const (
