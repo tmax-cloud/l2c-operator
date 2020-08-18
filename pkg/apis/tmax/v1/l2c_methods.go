@@ -85,14 +85,10 @@ func (s *L2cTaskStatus) CopyFromTaskRunStatus(trStatus *tektonv1.PipelineRunTask
 	s.CompletionTime = trStatus.Status.CompletionTime
 
 	// Steps
-	for _, step := range trStatus.Status.Steps {
-		s.Steps = append(s.Steps, step)
-	}
+	s.Steps = append(s.Steps, trStatus.Status.Steps...)
 
 	// Sidecars
-	for _, sideCar := range trStatus.Status.Sidecars {
-		s.Sidecars = append(s.Sidecars, sideCar)
-	}
+	s.Sidecars = append(s.Sidecars, trStatus.Status.Sidecars...)
 
 	// TaskSpec
 	s.TaskSpec = trStatus.Status.TaskSpec
