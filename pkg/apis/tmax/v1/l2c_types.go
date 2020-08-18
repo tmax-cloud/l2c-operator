@@ -139,6 +139,15 @@ type L2cStatus struct {
 }
 
 type CodeIssue struct {
+	Type         string           `json:"type"`
+	Severity     string           `json:"severity"`
+	File         string           `json:"file"`
+	Line         int32            `json:"line"`
+	TextRange    map[string]int32 `json:"textRange"`
+	Status       string           `json:"status"`
+	Message      string           `json:"message"`
+	CreationDate string           `json:"creationDate"`
+	UpdatedDate  string           `json:"updatedDate"`
 }
 
 type L2cTaskStatus struct {

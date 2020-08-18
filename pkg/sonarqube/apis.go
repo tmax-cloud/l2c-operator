@@ -293,6 +293,21 @@ func (s *SonarQube) UpdateWebhook(key, uri string) error {
 	return nil
 }
 
+func (s *SonarQube) GetIssues(key string) ([]tmaxv1.SonarIssue, error) {
+	data := map[string]string{
+		"componentKeys": key,
+		"resolved":      "false",
+		"ps":            "500",
+	}
+
+	issueList := &tmaxv1.SonarIssueResult{}
+	if err := s.reqHttp(MethodGet, "/api/issues/search", data, nil, issueList); err != nil {
+		return nil, err
+	}
+
+	return issueList.Issues, nil
+}
+
 func (s *SonarQube) reqHttp(method string, path string, data map[string]string, header map[string]string, handledResp interface{}) error {
 	uri, err := url.Parse(s.URL + path)
 	if err != nil {

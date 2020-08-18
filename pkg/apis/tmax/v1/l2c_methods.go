@@ -1,6 +1,9 @@
 package v1
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +63,30 @@ func (s *L2cStatus) SetDefaultConditions() {
 		cond.Status = corev1.ConditionUnknown
 		cond.Reason = ReasonPhaseNotExecuted
 		s.Conditions = append(s.Conditions, cond)
+	}
+}
+
+func (s *L2cStatus) SetIssues(issues []SonarIssue) {
+	s.SonarIssues = nil
+
+	for _, i := range issues {
+		issue := CodeIssue{
+			Type:         i.Type,
+			Severity:     i.Severity,
+			File:         strings.TrimPrefix(i.Component, fmt.Sprintf("%s:", i.Project)),
+			Line:         i.Line,
+			TextRange:    map[string]int32{},
+			Status:       i.Status,
+			Message:      i.Message,
+			CreationDate: i.CreationDate,
+			UpdatedDate:  i.UpdateDate,
+		}
+
+		for k, v := range i.TextRange {
+			issue.TextRange[k] = v
+		}
+
+		s.SonarIssues = append(s.SonarIssues, issue)
 	}
 }
 

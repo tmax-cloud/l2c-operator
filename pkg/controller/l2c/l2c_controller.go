@@ -261,6 +261,24 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 	}
 
+	// If Analyze status is Failed
+	analyzeStatus, asFound := instance.Status.GetCondition(tmaxv1.ConditionKeyPhaseAnalyze)
+	if asFound && analyzeStatus.Status == corev1.ConditionFalse && analyzeStatus.Reason == tmaxv1.ReasonPhaseFailed {
+		// Set status.sonarIssues
+		issues, err := r.sonarQube.GetIssues(sonarqube.GetSonarProjectName(instance))
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+
+		instance.Status.SetIssues(issues)
+
+		// Generate VSCode
+		//TODO
+	} else if asFound && analyzeStatus.Status == corev1.ConditionTrue {
+		instance.Status.SonarIssues = nil
+	}
+
 	// Update status!
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
