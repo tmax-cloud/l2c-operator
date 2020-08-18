@@ -1,23 +1,77 @@
 package l2c
 
 import (
+	"bytes"
 	"fmt"
 
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
-func configMap(l2c *tmaxv1.L2c) *corev1.ConfigMap {
+// ConfigMap for DB deployment
+func configMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
+	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, nil, nil, json.SerializerOptions{
+		Yaml:   true,
+		Pretty: true,
+		Strict: true,
+	})
+
+	// PVC object
+	pvc, err := dbPvc(l2c)
+	if err != nil {
+		return nil, err
+	}
+	pvcBuf := new(bytes.Buffer)
+	if err := serializer.Encode(pvc, pvcBuf); err != nil {
+		return nil, err
+	}
+
+	// Service object
+	svc, err := dbSvc(l2c)
+	if err != nil {
+		return nil, err
+	}
+	svcBuf := new(bytes.Buffer)
+	if err := serializer.Encode(svc, svcBuf); err != nil {
+		return nil, err
+	}
+
+	// Secret object
+	secret, err := dbSecret(l2c)
+	if err != nil {
+		return nil, err
+	}
+	secretBuf := new(bytes.Buffer)
+	if err := serializer.Encode(secret, secretBuf); err != nil {
+		return nil, err
+	}
+
+	// Deployment object
+	deploy, err := dbDeploy(l2c)
+	if err != nil {
+		return nil, err
+	}
+	deployBuf := new(bytes.Buffer)
+	if err := serializer.Encode(deploy, deployBuf); err != nil {
+		return nil, err
+	}
+
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      l2c.Name,
 			Namespace: l2c.Namespace,
 		},
-		Data: map[string]string{},
-	}
+		Data: map[string]string{
+			tmaxv1.ConfigMapKeyPvc:    pvcBuf.String(),
+			tmaxv1.ConfigMapKeySvc:    svcBuf.String(),
+			tmaxv1.ConfigMapKeySecret: secretBuf.String(),
+			tmaxv1.ConfigMapKeyDeploy: deployBuf.String(),
+		},
+	}, nil
 }
 
 func pipeline(l2c *tmaxv1.L2c) *tektonv1.Pipeline {

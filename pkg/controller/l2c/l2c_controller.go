@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/operator-framework/operator-sdk/pkg/status"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -186,52 +186,57 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		// Update L2c Running status True
 		if condition.Status == corev1.ConditionUnknown && condition.Reason == "Running" {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, metav1.ConditionTrue, "L2c is now running", ""); err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionTrue, "L2c is now running", ""); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
 	} else { // PipelineRun Not found --> Set status not running...
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, metav1.ConditionFalse, "", ""); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Create SonarQube Project
 	if err := r.sonarQube.CreateProject(instance); err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, err
 	}
 	// Set QualityProfiles
 	if err := r.sonarQube.SetQualityProfiles(instance, instance.Spec.Was.From.Type); err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, err
 	}
 
-	// Generate ConfigMap
-	cm := configMap(instance)
-	if err := controllerutil.SetControllerReference(instance, cm, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-	foundCm := &corev1.ConfigMap{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: cm.Name, Namespace: cm.Namespace}, foundCm)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
-		if err := r.client.Create(context.TODO(), cm); err != nil {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "creating configMap failed", err.Error()); err != nil {
+	// Generate ConfigMap (only if any db configuration is set)
+	if instance.Spec.Db != nil {
+		cm, err := configMap(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if err := controllerutil.SetControllerReference(instance, cm, r.scheme); err != nil {
+			return reconcile.Result{}, err
+		}
+		foundCm := &corev1.ConfigMap{}
+		err = r.client.Get(context.TODO(), types.NamespacedName{Name: cm.Name, Namespace: cm.Namespace}, foundCm)
+		if err != nil && errors.IsNotFound(err) {
+			reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
+			if err := r.client.Create(context.TODO(), cm); err != nil {
+				if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "creating configMap failed", err.Error()); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, nil
+		} else if err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting configmap", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "error getting configmap", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, err
 	}
 
 	// Generate Pipeline
@@ -246,14 +251,14 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if err != nil && errors.IsNotFound(err) {
 		reqLogger.Info("Creating a new Pipeline", "Pipeline.Namespace", pipeline.Namespace, "Pipeline.Name", pipeline.Name)
 		if err := r.client.Create(context.TODO(), pipeline); err != nil {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "creating pipeline failed", err.Error()); err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "creating pipeline failed", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, nil
 	} else if err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionFalse, "error getting pipeline", err.Error()); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting pipeline", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
 		return reconcile.Result{}, err
@@ -265,8 +270,8 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	if !found {
 		return reconcile.Result{}, fmt.Errorf("%s condition not found", tmaxv1.ConditionKeyProjectReady)
 	}
-	if currentReadyState.Status != metav1.ConditionTrue {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, metav1.ConditionTrue, "all ready", "project is ready to run"); err != nil {
+	if currentReadyState.Status != corev1.ConditionTrue {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionTrue, "all ready", "project is ready to run"); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -274,18 +279,18 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key metav1.RowConditionType, status metav1.ConditionStatus, reason, message string) error {
+func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
 	curCond, found := instance.Status.GetCondition(key)
 	if !found {
 		err := fmt.Errorf("cannot find condition %s", string(key))
 		log.Error(err, "")
 		return err
 	}
-	if curCond.Status == status && curCond.Reason == reason && curCond.Message == message {
+	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
 		return nil
 	}
 
-	instance.Status.SetCondition(key, status, reason, message)
+	instance.Status.SetCondition(key, stat, reason, message)
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		log.Error(err, "cannot update status")
 		return err
