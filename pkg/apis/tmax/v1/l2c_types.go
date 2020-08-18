@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/operator-framework/operator-sdk/pkg/status"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -122,7 +123,7 @@ type L2cStatus struct {
 	// PipelineRun name for the L2c
 	PipelineRunName string `json:"pipelineRunName,omitempty"`
 
-	Conditions []metav1.TableRowCondition `json:"conditions"`
+	Conditions []status.Condition `json:"conditions"`
 
 	// Status of each Task
 	TaskStatus []L2cTaskStatus `json:"taskStatus"`
@@ -145,7 +146,25 @@ type L2cTaskStatus struct {
 	TaskRunName string `json:"taskRunName"`
 
 	//
-	tektonv1.TaskRunStatus `json:",inline"`
+	Conditions []status.Condition `json:"conditions"`
+
+	//
+	PodName string `json:"podName"`
+
+	//
+	StartTime *metav1.Time `json:"startTime,omitempty"`
+
+	//
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+
+	//
+	Steps []tektonv1.StepState `json:"steps,omitempty"`
+
+	//
+	Sidecars []tektonv1.SidecarState `json:"sidecars,omitempty"`
+
+	// TaskSpec contains the Spec from the dereferenced Task definition used to instantiate this TaskRun.
+	TaskSpec *tektonv1.TaskSpec `json:"taskSpec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
