@@ -5300,15 +5300,10 @@ spec:
                         type: array
                     type: object
                 required:
-                - conditions
                 - podName
                 - taskRunName
                 type: object
               type: array
-          required:
-          - conditions
-          - sonarIssues
-          - taskStatus
           type: object
       type: object
   version: v1

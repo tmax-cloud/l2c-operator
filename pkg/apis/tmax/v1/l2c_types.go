@@ -123,10 +123,10 @@ type L2cStatus struct {
 	// PipelineRun name for the L2c
 	PipelineRunName string `json:"pipelineRunName,omitempty"`
 
-	Conditions []status.Condition `json:"conditions"`
+	Conditions []status.Condition `json:"conditions,omitempty"`
 
 	// Status of each Task
-	TaskStatus []L2cTaskStatus `json:"taskStatus"`
+	TaskStatus []L2cTaskStatus `json:"taskStatus,omitempty"`
 
 	// VSCode URL
 	EditorUrl string `json:"editorUrl,omitempty"`
@@ -135,7 +135,7 @@ type L2cStatus struct {
 	EditorCode string `json:"editorCode,omitempty"`
 
 	// SonarQube issues
-	SonarIssues []CodeIssue `json:"sonarIssues"`
+	SonarIssues []CodeIssue `json:"sonarIssues,omitempty"`
 }
 
 type CodeIssue struct {
@@ -146,7 +146,7 @@ type L2cTaskStatus struct {
 	TaskRunName string `json:"taskRunName"`
 
 	//
-	Conditions []status.Condition `json:"conditions"`
+	Conditions []status.Condition `json:"conditions,omitempty"`
 
 	//
 	PodName string `json:"podName"`
