@@ -3,7 +3,6 @@ package l2c
 import (
 	"context"
 	"fmt"
-
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
@@ -136,14 +136,13 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, nil
 	}
 
+	// !!IMPORTANT!!
+	// From here, it's all about status field
+	// All changes should be aggregated and updated as a whole at the end of the reconcile loop
+
 	// Set default Conditions
 	if len(instance.Status.Conditions) == 0 {
 		instance.Status.SetDefaults()
-		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-			log.Error(err, "cannot update status")
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, nil
 	}
 
 	// PipelineRun status check & do something & return
@@ -157,21 +156,12 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		} else {
 			instance.Status.PipelineRunName = prName
-			if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-				log.Error(err, "cannot update status")
-				return reconcile.Result{}, err
-			}
 		}
 	} else {
 		prName := instance.Status.PipelineRunName
 		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: prName, Namespace: instance.Namespace}, pr); err != nil {
 			if errors.IsNotFound(err) {
 				instance.Status.PipelineRunName = ""
-				if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-					log.Error(err, "cannot update status")
-					return reconcile.Result{}, err
-				}
-				return reconcile.Result{}, nil
 			} else {
 				log.Error(err, "cannot get pipelineRun")
 				return reconcile.Result{}, err
@@ -182,15 +172,43 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	// If PipelineRun exists, begin status check!
 	if pr.ResourceVersion != "" && len(pr.Status.Conditions) == 1 {
 		condition := pr.Status.Conditions[0]
-		// TODO
 
-		// Update L2c Running status True
-		if condition.Status == corev1.ConditionUnknown && condition.Reason == "Running" {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionTrue, "L2c is now running", ""); err != nil {
+		// Update L2c Running status True or false, depending on the status
+		if pr.Status.CompletionTime != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, condition.Reason, condition.Message); err != nil {
+				return reconcile.Result{}, err
+			}
+		} else {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionTrue, "L2c is now running", condition.Message); err != nil {
 				return reconcile.Result{}, err
 			}
 		}
-	} else { // PipelineRun Not found --> Set status not running...
+
+		// For each TaskRun status, update phase condition / task status for l2c
+		taskPhaseMap := map[string]status.ConditionType{
+			string(tmaxv1.PipelineTaskNameAnalyze): tmaxv1.ConditionKeyPhaseAnalyze,
+			string(tmaxv1.PipelineTaskNameMigrate): tmaxv1.ConditionKeyPhaseDbMigrate,
+			string(tmaxv1.PipelineTaskNameBuild):   tmaxv1.ConditionKeyPhaseBuild,
+			string(tmaxv1.PipelineTaskNameDeploy):  tmaxv1.ConditionKeyPhaseDeploy,
+		}
+		// Clear first
+		instance.Status.TaskStatus = nil
+		for k, v := range pr.Status.TaskRuns {
+			// Update task status
+			stat := tmaxv1.L2cTaskStatus{TaskRunName: k}
+			stat.CopyFromTaskRunStatus(v)
+			instance.Status.TaskStatus = append(instance.Status.TaskStatus, stat)
+
+			// Update phase conditions
+			phase, isKnown := taskPhaseMap[v.PipelineTaskName]
+			if isKnown && len(v.Status.Conditions) == 1 {
+				cond := v.Status.Conditions[0]
+				if err := r.setCondition(instance, phase, cond.Status, cond.Reason, cond.Message); err != nil {
+					return reconcile.Result{}, err
+				}
+			}
+		}
+	} else { // PipelineRun Not found but status is not false --> Set status not running...
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -201,14 +219,12 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
 	}
 	// Set QualityProfiles
 	if err := r.sonarQube.SetQualityProfiles(instance, instance.Spec.Was.From.Type); err != nil {
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, err
 	}
 
 	// Generate ConfigMap (only if any db configuration is set)
@@ -217,51 +233,20 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-		if err := controllerutil.SetControllerReference(instance, cm, r.scheme); err != nil {
-			return reconcile.Result{}, err
-		}
-		foundCm := &corev1.ConfigMap{}
-		err = r.client.Get(context.TODO(), types.NamespacedName{Name: cm.Name, Namespace: cm.Namespace}, foundCm)
-		if err != nil && errors.IsNotFound(err) {
-			reqLogger.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
-			if err := r.client.Create(context.TODO(), cm); err != nil {
-				if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "creating configMap failed", err.Error()); err != nil {
-					return reconcile.Result{}, err
-				}
+
+		if err := utils.CheckAndCreateObject(cm, instance, r.client, r.scheme); err != nil {
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
-			return reconcile.Result{}, nil
-		} else if err != nil {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting configmap", err.Error()); err != nil {
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, err
 		}
 	}
 
 	// Generate Pipeline
 	pipeline := pipeline(instance)
-	if err := controllerutil.SetControllerReference(instance, pipeline, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if this Pipeline already exists
-	foundPipeline := &tektonv1.Pipeline{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pipeline.Name, Namespace: pipeline.Namespace}, foundPipeline)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pipeline", "Pipeline.Namespace", pipeline.Namespace, "Pipeline.Name", pipeline.Name)
-		if err := r.client.Create(context.TODO(), pipeline); err != nil {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "creating pipeline failed", err.Error()); err != nil {
-				return reconcile.Result{}, err
-			}
+	if err := utils.CheckAndCreateObject(pipeline, instance, r.client, r.scheme); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting pipeline", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, err
 	}
 
 	// Set Project Ready!
@@ -274,6 +259,11 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionTrue, "all ready", "project is ready to run"); err != nil {
 			return reconcile.Result{}, err
 		}
+	}
+
+	// Update status!
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
@@ -291,9 +281,5 @@ func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key status.ConditionTy
 	}
 
 	instance.Status.SetCondition(key, stat, reason, message)
-	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
-		log.Error(err, "cannot update status")
-		return err
-	}
 	return nil
 }
