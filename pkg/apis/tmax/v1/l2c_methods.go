@@ -89,7 +89,4 @@ func (s *L2cTaskStatus) CopyFromTaskRunStatus(trStatus *tektonv1.PipelineRunTask
 
 	// Sidecars
 	s.Sidecars = append(s.Sidecars, trStatus.Status.Sidecars...)
-
-	// TaskSpec
-	s.TaskSpec = trStatus.Status.TaskSpec
 }

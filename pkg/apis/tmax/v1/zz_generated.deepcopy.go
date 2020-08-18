@@ -274,11 +274,6 @@ func (in *L2cTaskStatus) DeepCopyInto(out *L2cTaskStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.TaskSpec != nil {
-		in, out := &in.TaskSpec, &out.TaskSpec
-		*out = new(v1beta1.TaskSpec)
-		(*in).DeepCopyInto(*out)
-	}
 	return
 }
 

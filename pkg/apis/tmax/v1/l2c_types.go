@@ -162,9 +162,6 @@ type L2cTaskStatus struct {
 
 	//
 	Sidecars []tektonv1.SidecarState `json:"sidecars,omitempty"`
-
-	// TaskSpec contains the Spec from the dereferenced Task definition used to instantiate this TaskRun.
-	TaskSpec *tektonv1.TaskSpec `json:"taskSpec,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
