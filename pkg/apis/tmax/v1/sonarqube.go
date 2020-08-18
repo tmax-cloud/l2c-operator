@@ -68,6 +68,17 @@ type SonarIssueResult struct {
 
 // +k8s:deepcopy-gen=false
 type SonarIssue struct {
+	Component    string           `json:"component"`
+	Project      string           `json:"project"`
+	Line         int32            `json:"line"`
+	TextRange    map[string]int32 `json:"textRange"`
+	Status       string           `json:"status"`
+	Message      string           `json:"message"`
+	CreationDate string           `json:"creationDate"`
+	UpdateDate   string           `json:"updateDate"`
+	Type         string           `json:"type"`
+	Severity     string           `json:"severity"`
+
 	X map[string]interface{} `json:"-"`
 }
 

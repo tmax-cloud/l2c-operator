@@ -221,6 +221,39 @@ spec:
             sonarIssues:
               description: SonarQube issues
               items:
+                properties:
+                  creationDate:
+                    type: string
+                  file:
+                    type: string
+                  line:
+                    format: int32
+                    type: integer
+                  message:
+                    type: string
+                  severity:
+                    type: string
+                  status:
+                    type: string
+                  textRange:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    type: object
+                  type:
+                    type: string
+                  updatedDate:
+                    type: string
+                required:
+                - creationDate
+                - file
+                - line
+                - message
+                - severity
+                - status
+                - textRange
+                - type
+                - updatedDate
                 type: object
               type: array
             taskStatus:
