@@ -87,27 +87,24 @@ func runHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Check if PipelineRun exists
-	pr := pipelineRun(l2c, sonar)
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: pr.Name, Namespace: pr.Namespace}, pr); err != nil {
-		// If an error other than not found error occurs, is error
-		if !errors.IsNotFound(err) {
-			log.Error(err, "")
-			_ = utils.RespondError(w, http.StatusInternalServerError, "cannot get PipelineRun")
-			return
-		}
-	} else {
-		// If pr is found but it's still running, send 202 status code
-		if pr.Status.CompletionTime == nil {
+	// Check if L2c is currently running
+	runningCond, rcFound := l2c.Status.GetCondition(tmaxv1.ConditionKeyProjectRunning)
+	if rcFound {
+		if runningCond.Status == corev1.ConditionTrue {
 			_ = utils.RespondError(w, http.StatusAccepted, "L2c process is still running")
 			return
 		}
-		// If it is complete, delete it first
-		if err := c.Delete(context.TODO(), pr); err != nil {
-			log.Error(err, "")
-			_ = utils.RespondError(w, http.StatusInternalServerError, "cannot delete existing PipelineRun")
-			return
-		}
+	} else {
+		_ = utils.RespondError(w, http.StatusAccepted, "L2c may not be ready yet")
+		return
+	}
+
+	pr := pipelineRun(l2c, sonar)
+	// Delete first
+	if err := c.Delete(context.TODO(), pr); err != nil && !errors.IsNotFound(err) {
+		log.Error(err, "")
+		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot delete existing PipelineRun")
+		return
 	}
 
 	// Now, we can create PR
