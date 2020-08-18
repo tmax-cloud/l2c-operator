@@ -1,10 +1,11 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/operator-framework/operator-sdk/pkg/status"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func (s *L2cStatus) GetCondition(key metav1.RowConditionType) (*metav1.TableRowCondition, bool) {
+func (s *L2cStatus) GetCondition(key status.ConditionType) (*status.Condition, bool) {
 	for i, v := range s.Conditions {
 		if v.Type == key {
 			return &s.Conditions[i], true
@@ -14,20 +15,20 @@ func (s *L2cStatus) GetCondition(key metav1.RowConditionType) (*metav1.TableRowC
 	return nil, false
 }
 
-func (s *L2cStatus) SetCondition(key metav1.RowConditionType, status metav1.ConditionStatus, reason, message string) {
+func (s *L2cStatus) SetCondition(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
 	cond, found := s.GetCondition(key)
 	if !found {
-		newCond := metav1.TableRowCondition{
-			Type:    key,
-			Status:  status,
-			Reason:  reason,
-			Message: message,
+		cond = &status.Condition{
+			Type: key,
 		}
-		s.Conditions = append(s.Conditions, newCond)
-	} else {
-		cond.Status = status
-		cond.Reason = reason
-		cond.Message = message
+	}
+
+	cond.Status = stat
+	cond.Reason = status.ConditionReason(reason)
+	cond.Message = message
+
+	if !found {
+		s.Conditions = append(s.Conditions, *cond)
 	}
 }
 
@@ -36,11 +37,11 @@ func (s *L2cStatus) SetDefaults() {
 	// TODO
 }
 
-var conditions = []metav1.RowConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning, ConditionKeyAnalyze, ConditionKeyDbMigrate, ConditionKeyBuild, ConditionKeyDeploy}
+var conditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning, ConditionKeyAnalyze, ConditionKeyDbMigrate, ConditionKeyBuild, ConditionKeyDeploy}
 
 func (s *L2cStatus) SetDefaultConditions() {
-	cond := metav1.TableRowCondition{
-		Status: metav1.ConditionFalse,
+	cond := status.Condition{
+		Status: corev1.ConditionFalse,
 	}
 	for _, t := range conditions {
 		cond.Type = t

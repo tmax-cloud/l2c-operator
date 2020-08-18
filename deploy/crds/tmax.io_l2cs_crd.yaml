@@ -169,26 +169,37 @@ spec:
               type: string
             conditions:
               items:
-                description: TableRowCondition allows a row to be marked with additional
-                  information.
+                description: "Condition represents an observation of an object's state.
+                  Conditions are an extension mechanism intended to be used when the
+                  details of an observation are not a priori known or would not apply
+                  to all instances of a given Kind. \n Conditions should be added
+                  to explicitly convey properties that users and components care about
+                  rather than requiring those properties to be inferred from other
+                  observations. Once defined, the meaning of a Condition can not be
+                  changed arbitrarily - it becomes part of the API, and has the same
+                  backwards- and forwards-compatibility concerns of any other part
+                  of the API."
                 properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
                   message:
-                    description: Human readable message indicating details about last
-                      transition.
                     type: string
                   reason:
-                    description: (brief) machine readable reason for the condition's
-                      last transition.
+                    description: ConditionReason is intended to be a one-word, CamelCase
+                      representation of the category of cause of the current status.
+                      It is intended to be used in concise output, such as one-line
+                      kubectl get output, and in summarizing occurrences of causes.
                     type: string
                   status:
-                    description: Status of the condition, one of True, False, Unknown.
                     type: string
                   type:
-                    description: Type of row condition. The only defined value is
-                      'Completed' indicating that the object this row represents has
-                      reached a completed state and may be given less visual priority
-                      than other rows. Clients are not required to honor any conditions
-                      but should be consistent where possible about handling the conditions.
+                    description: "ConditionType is the type of the condition and is
+                      typically a CamelCased word or short phrase. \n Condition types
+                      should indicate state in the \"abnormal-true\" polarity. For
+                      example, if the condition indicates when a policy is invalid,
+                      the \"is valid\" case is probably the norm, so the condition
+                      should be called \"Invalid\"."
                     type: string
                 required:
                 - status
@@ -216,111 +227,52 @@ spec:
               description: Status of each Task
               items:
                 properties:
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    description: Annotations is additional Status fields for the Resource
-                      to save some additional State as well as convey more information
-                      to the user. This is roughly akin to Annotations on any k8s
-                      resource, just the reconciler conveying richer information outwards.
-                    type: object
-                  cloudEvents:
-                    description: CloudEvents describe the state of each cloud event
-                      requested via a CloudEventResource.
-                    items:
-                      description: CloudEventDelivery is the target of a cloud event
-                        along with the state of delivery.
-                      properties:
-                        status:
-                          description: CloudEventDeliveryState reports the state of
-                            a cloud event to be sent.
-                          properties:
-                            condition:
-                              description: Current status
-                              type: string
-                            message:
-                              description: Error is the text of error (if any)
-                              type: string
-                            retryCount:
-                              description: RetryCount is the number of attempts of
-                                sending the cloud event
-                              format: int32
-                              type: integer
-                            sentAt:
-                              description: SentAt is the time at which the last attempt
-                                to send the event was made
-                              format: date-time
-                              type: string
-                          required:
-                          - message
-                          - retryCount
-                          type: object
-                        target:
-                          description: Target points to an addressable
-                          type: string
-                      type: object
-                    type: array
                   completionTime:
-                    description: CompletionTime is the time the build completed.
                     format: date-time
                     type: string
                   conditions:
-                    $ref: '#/definitions/knative.dev~1pkg~1apis~0Conditions'
-                    description: Conditions the latest available observations of a
-                      resource's current state.
-                  observedGeneration:
-                    description: ObservedGeneration is the 'Generation' of the Service
-                      that was last processed by the controller.
-                    format: int64
-                    type: integer
-                  podName:
-                    description: PodName is the name of the pod responsible for executing
-                      this task's steps.
-                    type: string
-                  resourcesResult:
-                    description: Results from Resources built during the taskRun.
-                      currently includes the digest of build container images
                     items:
-                      description: PipelineResourceResult used to export the image
-                        name and digest as json
+                      description: "Condition represents an observation of an object's
+                        state. Conditions are an extension mechanism intended to be
+                        used when the details of an observation are not a priori known
+                        or would not apply to all instances of a given Kind. \n Conditions
+                        should be added to explicitly convey properties that users
+                        and components care about rather than requiring those properties
+                        to be inferred from other observations. Once defined, the
+                        meaning of a Condition can not be changed arbitrarily - it
+                        becomes part of the API, and has the same backwards- and forwards-compatibility
+                        concerns of any other part of the API."
                       properties:
-                        key:
+                        lastTransitionTime:
+                          format: date-time
                           type: string
-                        resourceName:
+                        message:
                           type: string
-                        resourceRef:
-                          description: This field should be deprecated and removed
-                            in the next API version. See https://github.com/tektoncd/pipeline/issues/2694
-                            for more information.
-                          properties:
-                            apiVersion:
-                              description: API version of the referent
-                              type: string
-                            name:
-                              description: 'Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names'
-                              type: string
-                          type: object
+                        reason:
+                          description: ConditionReason is intended to be a one-word,
+                            CamelCase representation of the category of cause of the
+                            current status. It is intended to be used in concise output,
+                            such as one-line kubectl get output, and in summarizing
+                            occurrences of causes.
+                          type: string
+                        status:
+                          type: string
                         type:
-                          description: ResultType used to find out whether a PipelineResourceResult
-                            is from a task result or not
-                          type: string
-                        value:
+                          description: "ConditionType is the type of the condition
+                            and is typically a CamelCased word or short phrase. \n
+                            Condition types should indicate state in the \"abnormal-true\"
+                            polarity. For example, if the condition indicates when
+                            a policy is invalid, the \"is valid\" case is probably
+                            the norm, so the condition should be called \"Invalid\"."
                           type: string
                       required:
-                      - key
-                      - value
+                      - status
+                      - type
                       type: object
                     type: array
-                  retriesStatus:
-                    description: RetriesStatus contains the history of TaskRunStatus
-                      in case of a retry in order to keep record of failures. All
-                      TaskRunStatus stored in RetriesStatus will have no date within
-                      the RetriesStatus as is redundant.
-                    items: {}
-                    type: array
+                  podName:
+                    type: string
                   sidecars:
-                    description: The list has one entry per sidecar in the manifest.
-                      Each entry is represents the imageid of the corresponding sidecar.
                     items:
                       description: SidecarState reports the results of running a sidecar
                         in a Task.
@@ -390,11 +342,9 @@ spec:
                       type: object
                     type: array
                   startTime:
-                    description: StartTime is the time the build is actually started.
                     format: date-time
                     type: string
                   steps:
-                    description: Steps describes the state of each build step container.
                     items:
                       description: StepState reports the results of running a step
                         in a Task.
@@ -461,24 +411,6 @@ spec:
                                 running.
                               type: string
                           type: object
-                      type: object
-                    type: array
-                  taskResults:
-                    description: TaskRunResults are the list of results written out
-                      by the task's containers
-                    items:
-                      description: TaskRunResult used to describe the results of a
-                        task
-                      properties:
-                        name:
-                          description: Name the given name
-                          type: string
-                        value:
-                          description: Value the given value of the result
-                          type: string
-                      required:
-                      - name
-                      - value
                       type: object
                     type: array
                   taskRunName:
@@ -5368,6 +5300,7 @@ spec:
                         type: array
                     type: object
                 required:
+                - conditions
                 - podName
                 - taskRunName
                 type: object

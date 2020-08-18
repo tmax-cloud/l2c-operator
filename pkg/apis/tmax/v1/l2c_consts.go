@@ -1,15 +1,17 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"github.com/operator-framework/operator-sdk/pkg/status"
+)
 
 const (
-	ConditionKeyProjectReady   = metav1.RowConditionType("ProjectReady")
-	ConditionKeyProjectRunning = metav1.RowConditionType("ProjectRunning")
+	ConditionKeyProjectReady   = status.ConditionType("ProjectReady")
+	ConditionKeyProjectRunning = status.ConditionType("ProjectRunning")
 
-	ConditionKeyAnalyze   = metav1.RowConditionType("Analyze")
-	ConditionKeyDbMigrate = metav1.RowConditionType("DBMigrate")
-	ConditionKeyBuild     = metav1.RowConditionType("Build")
-	ConditionKeyDeploy    = metav1.RowConditionType("Deploy")
+	ConditionKeyAnalyze   = status.ConditionType("Analyze")
+	ConditionKeyDbMigrate = status.ConditionType("DBMigrate")
+	ConditionKeyBuild     = status.ConditionType("Build")
+	ConditionKeyDeploy    = status.ConditionType("Deploy")
 )
 
 const (
