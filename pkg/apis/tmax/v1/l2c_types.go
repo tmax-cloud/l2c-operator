@@ -136,7 +136,7 @@ type L2cStatus struct {
 	EditorUrl string `json:"editorUrl,omitempty"`
 
 	// VSCode access code
-	EditorCode string `json:"editorCode,omitempty"`
+	EditorPassword string `json:"editorPassword,omitempty"`
 
 	// SonarQube issues
 	SonarIssues []CodeIssue `json:"sonarIssues,omitempty"`

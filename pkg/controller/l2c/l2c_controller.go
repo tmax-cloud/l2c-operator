@@ -6,6 +6,7 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,7 +65,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &networkingv1beta1.Ingress{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &tmaxv1.L2c{},
 	})
@@ -209,6 +210,8 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 				}
 			}
 		}
+
+		// TODO : if PR is succeeded, create Service for the deployment -- without L2c ownerReference
 	} else { // PipelineRun Not found but status is not false --> Set status not running...
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
@@ -278,8 +281,83 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		instance.Status.SetIssues(issues)
 
-		// Generate VSCode
-		// TODO
+		// Generate VSCode - ConfigMap/Secret/Service/Ingress/Deployment
+		var idePassword string
+		if instance.Status.EditorPassword != "" {
+			idePassword = instance.Status.EditorPassword
+		} else {
+			idePassword = utils.RandString(30)
+		}
+		ideCm, err := ideConfigMap(instance)
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		ideSecret, err := ideSecret(instance, idePassword)
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		ideService, err := ideService(instance)
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		ideIngress, err := ideIngress(instance)
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		ideDeploy, err := ideDeployment(instance)
+		if err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+
+		if err := utils.CheckAndCreateObject(ideCm, instance, r.client, r.scheme); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		if err := utils.CheckAndCreateObject(ideSecret, instance, r.client, r.scheme); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		if err := utils.CheckAndCreateObject(ideService, instance, r.client, r.scheme); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		if err := utils.CheckAndCreateObject(ideIngress, instance, r.client, r.scheme); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		if err := utils.CheckAndCreateObject(ideDeploy, instance, r.client, r.scheme); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+
+		// TODO : Status check for each objects
+
+		// Check if ingress is not configured yet
+		ideIngress = &networkingv1beta1.Ingress{}
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ideResourceName(instance), Namespace: instance.Namespace}, ideIngress); err != nil && !errors.IsNotFound(err) {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		} else if err == nil && len(ideIngress.Status.LoadBalancer.Ingress) != 0 && len(ideIngress.Spec.Rules) == 1 && ideIngress.Spec.Rules[0].Host == IdeIngressDefaultHost {
+			// If Loadbalancer is given to the ingress, but host is not set, set host!
+			ideIngress.Spec.Rules[0].Host = fmt.Sprintf("ide.%s.%s.%s.nip.io", instance.Name, instance.Namespace, ideIngress.Status.LoadBalancer.Ingress[0].IP)
+			if err := r.client.Update(context.TODO(), ideIngress); err != nil {
+				log.Error(err, "")
+				return reconcile.Result{}, err
+			}
+		}
+
+		// Save it to status
+		if instance.Status.EditorPassword == "" {
+			instance.Status.EditorPassword = idePassword
+		}
+		if len(ideIngress.Spec.Rules) == 1 && ideIngress.Spec.Rules[0].Host != IdeIngressDefaultHost {
+			instance.Status.EditorUrl = fmt.Sprintf("http://%s", ideIngress.Spec.Rules[0].Host)
+		}
 	} else if asFound && analyzeStatus.Status == corev1.ConditionTrue {
 		instance.Status.SonarIssues = nil
 	}
