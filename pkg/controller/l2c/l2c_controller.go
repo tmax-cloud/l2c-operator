@@ -217,15 +217,17 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Create SonarQube Project
 	if err := r.sonarQube.CreateProject(instance); err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
+		return reconcile.Result{}, err
 	}
 	// Set QualityProfiles
 	if err := r.sonarQube.SetQualityProfiles(instance, instance.Spec.Was.From.Type); err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot set sonarqube qualityProfiles", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
+		return reconcile.Result{}, err
 	}
 
 	// Generate ConfigMap (only if any db configuration is set)
@@ -236,18 +238,20 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		if err := utils.CheckAndCreateObject(cm, instance, r.client, r.scheme); err != nil {
-			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
+			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
+			return reconcile.Result{}, err
 		}
 	}
 
 	// Generate Pipeline
 	pipeline := pipeline(instance)
 	if err := utils.CheckAndCreateObject(pipeline, instance, r.client, r.scheme); err != nil {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
+		return reconcile.Result{}, err
 	}
 
 	// Set Project Ready!
@@ -286,6 +290,16 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileL2c) updateErrorStatus(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+	if err := r.setCondition(instance, key, stat, reason, message); err != nil {
+		return err
+	}
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
