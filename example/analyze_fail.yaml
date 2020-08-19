@@ -5,13 +5,13 @@ metadata:
 spec:
   was:
     from:
-      type: wildfly
+      type: weblogic
       git:
         url: https://github.com/taejune/my-weblogic-playground.git
     to:
       type: jeus
       image:
-        url: 172.22.11.2:30500/wildfly-test
+        url: 172.22.11.2:30500/weblogic-test
       port: 8808
       serviceType: NodePort
   db:
