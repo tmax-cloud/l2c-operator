@@ -207,7 +207,7 @@ spec:
                 - type
                 type: object
               type: array
-            editorCode:
+            editorPassword:
               description: VSCode access code
               type: string
             editorUrl:
