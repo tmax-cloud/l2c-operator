@@ -11,17 +11,33 @@ import (
 )
 
 func (s *L2cStatus) GetCondition(key status.ConditionType) (*status.Condition, bool) {
-	for i, v := range s.Conditions {
+	return s.GetConditionField(s.Conditions, key)
+}
+
+func (s *L2cStatus) SetCondition(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
+	s.SetConditionField(s.Conditions, key, stat, reason, message)
+}
+
+func (s *L2cStatus) GetPhase(key status.ConditionType) (*status.Condition, bool) {
+	return s.GetConditionField(s.Phases, key)
+}
+
+func (s *L2cStatus) SetPhase(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
+	s.SetConditionField(s.Phases, key, stat, reason, message)
+}
+
+func (s *L2cStatus) GetConditionField(field []status.Condition, key status.ConditionType) (*status.Condition, bool) {
+	for i, v := range field {
 		if v.Type == key {
-			return &s.Conditions[i], true
+			return &field[i], true
 		}
 	}
 
 	return nil, false
 }
 
-func (s *L2cStatus) SetCondition(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
-	cond, found := s.GetCondition(key)
+func (s *L2cStatus) SetConditionField(field []status.Condition, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
+	cond, found := s.GetConditionField(field, key)
 	if !found {
 		cond = &status.Condition{
 			Type: key,
@@ -34,17 +50,16 @@ func (s *L2cStatus) SetCondition(key status.ConditionType, stat corev1.Condition
 	cond.LastTransitionTime = metav1.Now()
 
 	if !found {
-		s.Conditions = append(s.Conditions, *cond)
+		field = append(field, *cond)
 	}
 }
 
 func (s *L2cStatus) SetDefaults() {
 	s.SetDefaultConditions()
-	// TODO
+	s.SetDefaultPhases()
 }
 
 var conditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning}
-var phases = []status.ConditionType{ConditionKeyPhaseAnalyze, ConditionKeyPhaseDbMigrate, ConditionKeyPhaseBuild, ConditionKeyPhaseDeploy}
 
 func (s *L2cStatus) SetDefaultConditions() {
 	// Global Conditions
@@ -56,13 +71,20 @@ func (s *L2cStatus) SetDefaultConditions() {
 		cond.Type = t
 		s.Conditions = append(s.Conditions, cond)
 	}
+}
 
+var phases = []status.ConditionType{ConditionKeyPhaseAnalyze, ConditionKeyPhaseDbMigrate, ConditionKeyPhaseBuild, ConditionKeyPhaseDeploy}
+
+func (s *L2cStatus) SetDefaultPhases() {
 	// L2c Phases
+	phase := status.Condition{
+		Status:             corev1.ConditionUnknown,
+		Reason:             ReasonPhaseNotExecuted,
+		LastTransitionTime: metav1.Now(),
+	}
 	for _, t := range phases {
-		cond.Type = t
-		cond.Status = corev1.ConditionUnknown
-		cond.Reason = ReasonPhaseNotExecuted
-		s.Conditions = append(s.Conditions, cond)
+		phase.Type = t
+		s.Phases = append(s.Phases, phase)
 	}
 }
 
