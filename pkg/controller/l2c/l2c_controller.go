@@ -62,6 +62,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		IsController: true,
 		OwnerType:    &tmaxv1.L2c{},
 	})
+	if err != nil {
+		return err
+	}
 	err = c.Watch(&source.Kind{Type: &networkingv1beta1.Ingress{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &tmaxv1.L2c{},
