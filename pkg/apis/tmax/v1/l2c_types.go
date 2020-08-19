@@ -123,7 +123,11 @@ type L2cStatus struct {
 	// PipelineRun name for the L2c
 	PipelineRunName string `json:"pipelineRunName,omitempty"`
 
+	// L2c project conditions
 	Conditions []status.Condition `json:"conditions,omitempty"`
+
+	// Each Phases
+	Phases []status.Condition `json:"phases,omitempty"`
 
 	// Status of each Task
 	TaskStatus []L2cTaskStatus `json:"taskStatus,omitempty"`

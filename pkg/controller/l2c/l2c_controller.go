@@ -175,6 +175,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		// Update L2c Running status True or false, depending on the status
 		if pr.Status.CompletionTime != nil {
+			instance.Status.CompletionTime = pr.Status.CompletionTime
 			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, condition.Reason, condition.Message); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -203,7 +204,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			phase, isKnown := taskPhaseMap[v.PipelineTaskName]
 			if isKnown && len(v.Status.Conditions) == 1 {
 				cond := v.Status.Conditions[0]
-				if err := r.setCondition(instance, phase, cond.Status, cond.Reason, cond.Message); err != nil {
+				if err := r.setPhase(instance, phase, cond.Status, cond.Reason, cond.Message); err != nil {
 					return reconcile.Result{}, err
 				}
 			}
@@ -262,7 +263,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// If Analyze status is Failed
-	analyzeStatus, asFound := instance.Status.GetCondition(tmaxv1.ConditionKeyPhaseAnalyze)
+	analyzeStatus, asFound := instance.Status.GetPhase(tmaxv1.ConditionKeyPhaseAnalyze)
 	if asFound && analyzeStatus.Status == corev1.ConditionFalse && analyzeStatus.Reason == tmaxv1.ReasonPhaseFailed {
 		// Set status.sonarIssues
 		issues, err := r.sonarQube.GetIssues(sonarqube.GetSonarProjectName(instance))
@@ -274,7 +275,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		instance.Status.SetIssues(issues)
 
 		// Generate VSCode
-		//TODO
+		// TODO
 	} else if asFound && analyzeStatus.Status == corev1.ConditionTrue {
 		instance.Status.SonarIssues = nil
 	}
@@ -288,16 +289,37 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 }
 
 func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
-	curCond, found := instance.Status.GetCondition(key)
-	if !found {
-		err := fmt.Errorf("cannot find condition %s", string(key))
-		log.Error(err, "")
+	arr, err := r.setConditionField(instance.Status.Conditions, instance, key, stat, reason, message)
+	if err != nil {
 		return err
 	}
-	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
-		return nil
+
+	instance.Status.Conditions = arr
+
+	return nil
+}
+
+func (r *ReconcileL2c) setPhase(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+	arr, err := r.setConditionField(instance.Status.Phases, instance, key, stat, reason, message)
+	if err != nil {
+		return err
 	}
 
-	instance.Status.SetCondition(key, stat, reason, message)
+	instance.Status.Phases = arr
+
 	return nil
+}
+
+func (r *ReconcileL2c) setConditionField(field []status.Condition, instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) ([]status.Condition, error) {
+	curCond, found := instance.Status.GetConditionField(field, key)
+	if !found {
+		err := fmt.Errorf("cannot find conditions %s", string(key))
+		log.Error(err, "")
+		return nil, err
+	}
+	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
+		return field, nil
+	}
+
+	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
 }

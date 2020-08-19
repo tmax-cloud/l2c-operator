@@ -96,7 +96,7 @@ func pipeline(l2c *tmaxv1.L2c) *tektonv1.Pipeline {
 			Tasks: []tektonv1.PipelineTask{
 				{
 					Name:    string(tmaxv1.PipelineTaskNameAnalyze),
-					TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameAnalyzeMaven, Kind: tektonv1.ClusterTaskKind}, //TODO: MAVEN/GRADLE
+					TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameAnalyzeMaven, Kind: tektonv1.ClusterTaskKind}, // TODO: MAVEN/GRADLE
 					Resources: &tektonv1.PipelineTaskResources{
 						Inputs: []tektonv1.PipelineTaskInputResource{
 							{

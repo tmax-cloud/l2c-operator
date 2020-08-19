@@ -224,6 +224,13 @@ func (in *L2cStatus) DeepCopyInto(out *L2cStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.Phases != nil {
+		in, out := &in.Phases, &out.Phases
+		*out = make([]status.Condition, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.TaskStatus != nil {
 		in, out := &in.TaskStatus, &out.TaskStatus
 		*out = make([]L2cTaskStatus, len(*in))
