@@ -7,69 +7,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
-const (
-	Port = 34335
-)
-
-type Webhook struct {
-	Handler *WebhookHandler
-}
-
-func NewWebhook(cl client.Client) *Webhook {
-	cfg, err := config.GetConfig()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-	clSet, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-	return &Webhook{
-		Handler: &WebhookHandler{
-			c:         cl,
-			clientSet: clSet,
-			clientCfg: cfg,
-		},
-	}
-}
-
-func (w *Webhook) Start() {
-	addr := fmt.Sprintf("0.0.0.0:%d", Port)
-	log.Info(fmt.Sprintf("SonarQube webhook is running on %s", addr))
-	if err := http.ListenAndServe(addr, w.Handler); err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-}
-
-type WebhookHandler struct {
-	c client.Client
-
-	clientCfg *rest.Config
-	clientSet *kubernetes.Clientset
-}
-
-func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (s *SonarServer) WebhookHandleFunc(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		_ = utils.RespondError(w, http.StatusInternalServerError, err.Error())
@@ -97,7 +48,7 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	name := values[1]
 
 	l2c := &tmaxv1.L2c{}
-	if err := h.c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, l2c); err != nil {
+	if err := s.c.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, l2c); err != nil {
 		log.Error(err, "cannot get l2c object")
 		_ = utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -113,7 +64,7 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	pr := &tektonv1.PipelineRun{}
-	if err := h.c.Get(context.TODO(), types.NamespacedName{Name: prName, Namespace: namespace}, pr); err != nil {
+	if err := s.c.Get(context.TODO(), types.NamespacedName{Name: prName, Namespace: namespace}, pr); err != nil {
 		log.Error(err, "cannot get pipelineRun object")
 		_ = utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -140,7 +91,7 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	pod := &corev1.Pod{}
-	if err := h.c.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: namespace}, pod); err != nil {
+	if err := s.c.Get(context.TODO(), types.NamespacedName{Name: podName, Namespace: namespace}, pod); err != nil {
 		log.Error(err, "cannot get taskRun pod")
 		_ = utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -153,18 +104,18 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	} else {
 		result = apis.ScanResultFail
 	}
-	if err := h.execPodCommand(pod, result); err != nil {
+	if err := s.execPodCommand(pod, result); err != nil {
 		log.Error(err, "cannot exec cmd to a pod")
 		_ = utils.RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 }
 
-func (h *WebhookHandler) execPodCommand(pod *corev1.Pod, result apis.ScanResult) error {
+func (s *SonarServer) execPodCommand(pod *corev1.Pod, result apis.ScanResult) error {
 	command := []string{"/scan-waiter", string(result)}
 
 	// Create custom REST API call to exec
-	req := h.clientSet.CoreV1().RESTClient().Post().Resource("pods").Name(pod.Name).Namespace(pod.Namespace).SubResource("exec")
+	req := s.clientSet.CoreV1().RESTClient().Post().Resource("pods").Name(pod.Name).Namespace(pod.Namespace).SubResource("exec")
 	scheme := runtime.NewScheme()
 	if err := corev1.AddToScheme(scheme); err != nil {
 		return err
@@ -180,7 +131,7 @@ func (h *WebhookHandler) execPodCommand(pod *corev1.Pod, result apis.ScanResult)
 		TTY:       false,
 	}, parameterCode)
 
-	exec, err := remotecommand.NewSPDYExecutor(h.clientCfg, "POST", req.URL())
+	exec, err := remotecommand.NewSPDYExecutor(s.clientCfg, "POST", req.URL())
 	if err != nil {
 		return err
 	}

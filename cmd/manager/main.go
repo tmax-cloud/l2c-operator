@@ -128,9 +128,9 @@ func main() {
 		log.Info("SonarQube is ready!")
 	}
 
-	// Start SonarQube Webhook
-	webhook := sonarqube.NewWebhook(mgr.GetClient())
-	go webhook.Start()
+	// Start SonarQube Webhook/API-proxy server
+	sonarServer := sonarqube.NewServer(mgr.GetClient(), sonar)
+	go sonarServer.Start()
 
 	// Start extension API server for l2c/run
 	extServer := apiserver.New(sonar)
