@@ -15,7 +15,7 @@ func (s *L2cStatus) GetCondition(key status.ConditionType) (*status.Condition, b
 }
 
 func (s *L2cStatus) SetCondition(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
-	s.SetConditionField(s.Conditions, key, stat, reason, message)
+	s.Conditions = s.SetConditionField(s.Conditions, key, stat, reason, message)
 }
 
 func (s *L2cStatus) GetPhase(key status.ConditionType) (*status.Condition, bool) {
@@ -23,7 +23,7 @@ func (s *L2cStatus) GetPhase(key status.ConditionType) (*status.Condition, bool)
 }
 
 func (s *L2cStatus) SetPhase(key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
-	s.SetConditionField(s.Phases, key, stat, reason, message)
+	s.Phases = s.SetConditionField(s.Phases, key, stat, reason, message)
 }
 
 func (s *L2cStatus) GetConditionField(field []status.Condition, key status.ConditionType) (*status.Condition, bool) {
@@ -36,7 +36,7 @@ func (s *L2cStatus) GetConditionField(field []status.Condition, key status.Condi
 	return nil, false
 }
 
-func (s *L2cStatus) SetConditionField(field []status.Condition, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) {
+func (s *L2cStatus) SetConditionField(field []status.Condition, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) []status.Condition {
 	cond, found := s.GetConditionField(field, key)
 	if !found {
 		cond = &status.Condition{
@@ -50,8 +50,10 @@ func (s *L2cStatus) SetConditionField(field []status.Condition, key status.Condi
 	cond.LastTransitionTime = metav1.Now()
 
 	if !found {
-		field = append(field, *cond)
+		return append(field, *cond)
 	}
+
+	return field
 }
 
 func (s *L2cStatus) SetDefaults() {

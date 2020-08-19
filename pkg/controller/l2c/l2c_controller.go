@@ -289,24 +289,37 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 }
 
 func (r *ReconcileL2c) setCondition(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
-	return r.setConditionField(instance.Status.Conditions, instance, key, stat, reason, message)
+	arr, err := r.setConditionField(instance.Status.Conditions, instance, key, stat, reason, message)
+	if err != nil {
+		return err
+	}
+
+	instance.Status.Conditions = arr
+
+	return nil
 }
 
 func (r *ReconcileL2c) setPhase(instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
-	return r.setConditionField(instance.Status.Phases, instance, key, stat, reason, message)
+	arr, err := r.setConditionField(instance.Status.Phases, instance, key, stat, reason, message)
+	if err != nil {
+		return err
+	}
+
+	instance.Status.Phases = arr
+
+	return nil
 }
 
-func (r *ReconcileL2c) setConditionField(field []status.Condition, instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+func (r *ReconcileL2c) setConditionField(field []status.Condition, instance *tmaxv1.L2c, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) ([]status.Condition, error) {
 	curCond, found := instance.Status.GetConditionField(field, key)
 	if !found {
 		err := fmt.Errorf("cannot find conditions %s", string(key))
 		log.Error(err, "")
-		return err
+		return nil, err
 	}
 	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
-		return nil
+		return field, nil
 	}
 
-	instance.Status.SetConditionField(field, key, stat, reason, message)
-	return nil
+	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
 }
