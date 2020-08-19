@@ -103,7 +103,7 @@ spec:
                     type:
                       description: Current WAS type
                       enum:
-                      - wildfly
+                      - weblogic
                       type: string
                   required:
                   - git

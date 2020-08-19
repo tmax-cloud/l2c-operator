@@ -44,7 +44,7 @@ type L2cImage struct {
 
 type L2cWasFrom struct {
 	// Current WAS type
-	// +kubebuilder:validation:Enum=wildfly
+	// +kubebuilder:validation:Enum=weblogic
 	Type string `json:"type"`
 
 	// Git information for WAS source code
