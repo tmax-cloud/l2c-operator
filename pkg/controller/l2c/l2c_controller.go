@@ -270,7 +270,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	analyzeStatus, asFound := instance.Status.GetPhase(tmaxv1.ConditionKeyPhaseAnalyze)
 	if asFound && analyzeStatus.Status == corev1.ConditionFalse && analyzeStatus.Reason == tmaxv1.ReasonPhaseFailed {
 		// Set status.sonarIssues
-		issues, err := r.sonarQube.GetIssues(sonarqube.GetSonarProjectName(instance))
+		issues, err := r.sonarQube.GetIssues(instance.GetSonarProjectName())
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err

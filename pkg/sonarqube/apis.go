@@ -18,12 +18,6 @@ const (
 	QualityGateName = "migration"
 )
 
-func GetSonarProjectName(l2c *tmaxv1.L2c) string {
-	// Project key : <Namespace>_<Name>
-	// It's valid as l2c cannot have underscore(_) for its name/namespace
-	return fmt.Sprintf("%s_%s", l2c.Namespace, l2c.Name)
-}
-
 func (s *SonarQube) GenerateToken() (string, error) {
 	tokenName := s.AdminId + utils.RandString(5)
 	data := map[string]string{
@@ -122,7 +116,7 @@ func (s *SonarQube) SetQualityGate() error {
 }
 
 func (s *SonarQube) CreateProject(l2c *tmaxv1.L2c) error {
-	name := GetSonarProjectName(l2c)
+	name := l2c.GetSonarProjectName()
 	// Search if there is project
 	getResult := &tmaxv1.SonarProjectResult{}
 	if err := s.reqHttp(http.MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
@@ -148,7 +142,7 @@ func (s *SonarQube) CreateProject(l2c *tmaxv1.L2c) error {
 }
 
 func (s *SonarQube) DeleteProject(l2c *tmaxv1.L2c) error {
-	name := GetSonarProjectName(l2c)
+	name := l2c.GetSonarProjectName()
 	// Search if there is project
 	getResult := &tmaxv1.SonarProjectResult{}
 	if err := s.reqHttp(http.MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
@@ -189,7 +183,7 @@ func (s *SonarQube) GetQualityProfiles(profileNames []string) ([]tmaxv1.SonarPro
 
 // TODO : qualityProfile name should be revisited - sourceWAS is not enough!
 func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error {
-	name := GetSonarProjectName(l2c)
+	name := l2c.GetSonarProjectName()
 	// QualityProfile name - temporarily, same as targetWas
 	qualityProfile := sourceWas
 
