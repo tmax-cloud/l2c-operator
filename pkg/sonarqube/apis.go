@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	MethodPost = "POST"
-	MethodGet  = "GET"
-
 	WebhookName     = "global-webhook"
 	QualityGateName = "migration"
 )
@@ -34,7 +31,7 @@ func (s *SonarQube) GenerateToken() (string, error) {
 		"name":  tokenName,
 	}
 	result := &tmaxv1.SonarToken{}
-	if err := s.reqHttp(MethodPost, "/api/user_tokens/generate", data, nil, result); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/user_tokens/generate", data, nil, result); err != nil {
 		return "", err
 	}
 
@@ -49,7 +46,7 @@ func (s *SonarQube) ChangePassword(new string) error {
 		"previousPassword": s.AdminPw,
 		"password":         new,
 	}
-	if err := s.reqHttp(MethodPost, "/api/users/change_password", data, nil, nil); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/users/change_password", data, nil, nil); err != nil {
 		return err
 	}
 
@@ -63,7 +60,7 @@ func (s *SonarQube) SetQualityGate() error {
 	isGateDefault := false
 	// Check if there exists QualityGate
 	listResult := &tmaxv1.SonarQubeQualityGateListResult{}
-	if err := s.reqHttp(MethodGet, "/api/qualitygates/list", nil, nil, listResult); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/qualitygates/list", nil, nil, listResult); err != nil {
 		return err
 	}
 	for _, g := range listResult.QualityGates {
@@ -76,7 +73,7 @@ func (s *SonarQube) SetQualityGate() error {
 	// Create QualityGate only if gate is not found
 	if gateId < 0 {
 		createResult := &tmaxv1.SonarQualityGateCreateResult{}
-		if err := s.reqHttp(MethodPost, "/api/qualitygates/create", map[string]string{"name": QualityGateName}, nil, createResult); err != nil {
+		if err := s.reqHttp(http.MethodPost, "/api/qualitygates/create", map[string]string{"name": QualityGateName}, nil, createResult); err != nil {
 			return err
 		}
 		gateId = createResult.ID
@@ -89,7 +86,7 @@ func (s *SonarQube) SetQualityGate() error {
 
 	// Check if condition exists
 	showResult := &tmaxv1.SonarQubeQualityGateShowResult{}
-	if err := s.reqHttp(MethodGet, "/api/qualitygates/show", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, showResult); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/qualitygates/show", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, showResult); err != nil {
 		return err
 	}
 	condFound := false
@@ -107,7 +104,7 @@ func (s *SonarQube) SetQualityGate() error {
 			"op":     condOP,
 			"error":  condError,
 		}
-		if err := s.reqHttp(MethodPost, "/api/qualitygates/create_condition", conditionData, nil, nil); err != nil {
+		if err := s.reqHttp(http.MethodPost, "/api/qualitygates/create_condition", conditionData, nil, nil); err != nil {
 			return err
 		}
 		log.Info("Created a QualityGate Condition")
@@ -115,7 +112,7 @@ func (s *SonarQube) SetQualityGate() error {
 
 	// Set as default only if the gate is not a default
 	if !isGateDefault {
-		if err := s.reqHttp(MethodPost, "/api/qualitygates/set_as_default", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, nil); err != nil {
+		if err := s.reqHttp(http.MethodPost, "/api/qualitygates/set_as_default", map[string]string{"id": fmt.Sprintf("%d", gateId)}, nil, nil); err != nil {
 			return err
 		}
 		log.Info("Set the QualityGate as default")
@@ -128,7 +125,7 @@ func (s *SonarQube) CreateProject(l2c *tmaxv1.L2c) error {
 	name := GetSonarProjectName(l2c)
 	// Search if there is project
 	getResult := &tmaxv1.SonarProjectResult{}
-	if err := s.reqHttp(MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
 		return err
 	}
 
@@ -141,7 +138,7 @@ func (s *SonarQube) CreateProject(l2c *tmaxv1.L2c) error {
 		"name":    name,
 		"project": name,
 	}
-	if err := s.reqHttp(MethodPost, "/api/projects/create", data, nil, nil); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/projects/create", data, nil, nil); err != nil {
 		return err
 	}
 
@@ -154,7 +151,7 @@ func (s *SonarQube) DeleteProject(l2c *tmaxv1.L2c) error {
 	name := GetSonarProjectName(l2c)
 	// Search if there is project
 	getResult := &tmaxv1.SonarProjectResult{}
-	if err := s.reqHttp(MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/projects/search", map[string]string{"projects": name}, nil, getResult); err != nil {
 		return err
 	}
 
@@ -162,7 +159,7 @@ func (s *SonarQube) DeleteProject(l2c *tmaxv1.L2c) error {
 		return nil
 	}
 
-	if err := s.reqHttp(MethodPost, "/api/projects/delete", map[string]string{"project": name}, nil, nil); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/projects/delete", map[string]string{"project": name}, nil, nil); err != nil {
 		return err
 	}
 
@@ -183,7 +180,7 @@ func (s *SonarQube) GetQualityProfiles(profileNames []string) ([]tmaxv1.SonarPro
 	}
 
 	result := &tmaxv1.SonarProfileResult{}
-	if err := s.reqHttp(MethodGet, "/api/qualityprofiles/search", data, nil, result); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/qualityprofiles/search", data, nil, result); err != nil {
 		return nil, err
 	}
 
@@ -204,7 +201,7 @@ func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error 
 
 	// Get Set QualityProfiles to the project
 	listResult := &tmaxv1.SonarQubeQualityProfileListResult{}
-	if err := s.reqHttp(MethodGet, "/api/qualityprofiles/search", map[string]string{"project": name}, nil, listResult); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/qualityprofiles/search", map[string]string{"project": name}, nil, listResult); err != nil {
 		return err
 	}
 
@@ -227,7 +224,7 @@ func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error 
 			"project":        name,
 			"qualityProfile": qualityProfile,
 		}
-		if err := s.reqHttp(MethodPost, "/api/qualityprofiles/add_project", data, nil, nil); err != nil {
+		if err := s.reqHttp(http.MethodPost, "/api/qualityprofiles/add_project", data, nil, nil); err != nil {
 			return err
 		}
 
@@ -238,11 +235,11 @@ func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error 
 }
 
 func (s *SonarQube) RegisterWebhook() error {
-	addr := fmt.Sprintf("http://l2c-operator:%d", Port)
+	addr := fmt.Sprintf("http://%s:%d/webhook", utils.ApiServiceName(), Port)
 
 	// First, get if webhook is already set correctly
 	getResult := &tmaxv1.SonarWebhookResult{}
-	if err := s.reqHttp(MethodPost, "/api/webhooks/list", nil, nil, getResult); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/webhooks/list", nil, nil, getResult); err != nil {
 		return err
 	}
 
@@ -269,7 +266,7 @@ func (s *SonarQube) RegisterWebhook() error {
 		"url":  addr,
 	}
 
-	if err := s.reqHttp(MethodPost, "/api/webhooks/create", data, nil, nil); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/webhooks/create", data, nil, nil); err != nil {
 		return err
 	}
 
@@ -284,7 +281,7 @@ func (s *SonarQube) UpdateWebhook(key, uri string) error {
 		"webhook": key,
 		"url":     uri,
 	}
-	if err := s.reqHttp(MethodPost, "/api/webhooks/update", data, nil, nil); err != nil {
+	if err := s.reqHttp(http.MethodPost, "/api/webhooks/update", data, nil, nil); err != nil {
 		return err
 	}
 
@@ -301,7 +298,7 @@ func (s *SonarQube) GetIssues(key string) ([]tmaxv1.SonarIssue, error) {
 	}
 
 	issueList := &tmaxv1.SonarIssueResult{}
-	if err := s.reqHttp(MethodGet, "/api/issues/search", data, nil, issueList); err != nil {
+	if err := s.reqHttp(http.MethodGet, "/api/issues/search", data, nil, issueList); err != nil {
 		return nil, err
 	}
 
