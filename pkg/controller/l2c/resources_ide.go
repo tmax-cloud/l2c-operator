@@ -135,6 +135,7 @@ func ideDeployment(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 					Containers: []corev1.Container{{
 						Name:            "web-ide",
 						Image:           "192.168.6.110:5000/tmax/code-server:3.3.1", // TODO!!!!
+						Args:            []string{""},
 						ImagePullPolicy: corev1.PullAlways,
 						VolumeMounts: []corev1.VolumeMount{{
 							Name:      IdeVolumeSetting,
