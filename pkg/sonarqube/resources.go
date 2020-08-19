@@ -106,7 +106,7 @@ func (s *SonarQube) pvc() *corev1.PersistentVolumeClaim {
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
 			Resources: corev1.ResourceRequirements{
 				Requests: map[corev1.ResourceName]resource.Quantity{
-					"storage": resource.MustParse(s.StorageSize),
+					corev1.ResourceStorage: resource.MustParse(s.StorageSize),
 				},
 			},
 		},

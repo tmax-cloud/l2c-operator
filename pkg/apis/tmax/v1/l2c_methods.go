@@ -10,6 +10,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func (l *L2c) GetSonarProjectName() string {
+	// Project key : <Namespace>_<Name>
+	// It's valid as l2c cannot have underscore(_) for its name/namespace
+	return fmt.Sprintf("%s_%s", l.Namespace, l.Name)
+}
+
 func (s *L2cStatus) GetCondition(key status.ConditionType) (*status.Condition, bool) {
 	return s.GetConditionField(s.Conditions, key)
 }

@@ -52,7 +52,7 @@ func pipelineRun(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *tektonv1.Pipeline
 					Name: tmaxv1.PipelineParamNameSonarProjectKey,
 					Value: tektonv1.ArrayOrString{
 						Type:      tektonv1.ParamTypeString,
-						StringVal: sonarqube.GetSonarProjectName(l2c),
+						StringVal: l2c.GetSonarProjectName(),
 					},
 				},
 			},
