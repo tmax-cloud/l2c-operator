@@ -15,24 +15,25 @@ import (
 
 const (
 	IdePort               = 8080
-	IdeVolumeSetting      = "setting"
 	IdeVolumeConfig       = "config"
 	IdeIngressDefaultHost = "waiting.for.ingress.ready"
 )
 
-func ideConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
+func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 	ns, err := utils.Namespace()
 	if err != nil {
 		return nil, err
 	}
 
-	return &corev1.ConfigMap{
+	password := utils.RandString(30)
+
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
 			Namespace: l2c.Namespace,
 			Labels:    ideLabel(l2c),
 		},
-		Data: map[string]string{
+		StringData: map[string]string{
 			"settings.json": fmt.Sprintf(`{
         "sonarlint.connectedMode.connections.sonarqube": [
           {
@@ -48,22 +49,11 @@ func ideConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
         "java.home": "/usr/lib/jvm/java-11-openjdk-amd64"
       }
 `, utils.ApiServiceName(), ns, sonarqube.Port, l2c.GetSonarProjectName()),
-		},
-	}, nil
-}
-
-func ideSecret(l2c *tmaxv1.L2c, password string) (*corev1.Secret, error) {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ideResourceName(l2c),
-			Namespace: l2c.Namespace,
-			Labels:    ideLabel(l2c),
-		},
-		StringData: map[string]string{
 			"config.yaml": fmt.Sprintf(`bind-addr: 0.0.0.0:%d
 auth: password
 password: %s
 cert: false`, IdePort, password),
+			"password": password,
 		},
 	}, nil
 }
@@ -138,7 +128,7 @@ func ideDeployment(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 						Args:            []string{""},
 						ImagePullPolicy: corev1.PullAlways,
 						VolumeMounts: []corev1.VolumeMount{{
-							Name:      IdeVolumeSetting,
+							Name:      IdeVolumeConfig,
 							SubPath:   "settings.json",
 							MountPath: "/tmp/settings.json",
 						}, {
@@ -159,13 +149,6 @@ func ideDeployment(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 						},
 					}},
 					Volumes: []corev1.Volume{{
-						Name: IdeVolumeSetting,
-						VolumeSource: corev1.VolumeSource{
-							ConfigMap: &corev1.ConfigMapVolumeSource{
-								LocalObjectReference: corev1.LocalObjectReference{Name: ideResourceName(l2c)},
-							},
-						},
-					}, {
 						Name: IdeVolumeConfig,
 						VolumeSource: corev1.VolumeSource{
 							Secret: &corev1.SecretVolumeSource{SecretName: ideResourceName(l2c)},

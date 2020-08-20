@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	ConditionKeyProjectReady   = status.ConditionType("ProjectReady")
-	ConditionKeyProjectRunning = status.ConditionType("ProjectRunning")
+	ConditionKeyProjectReady     = status.ConditionType("ProjectReady")
+	ConditionKeyProjectRunning   = status.ConditionType("ProjectRunning")
+	ConditionKeyProjectSucceeded = status.ConditionType("ProjectSucceeded")
 
 	ConditionKeyPhaseAnalyze   = status.ConditionType("PhaseAnalyze")
 	ConditionKeyPhaseDbMigrate = status.ConditionType("PhaseDBMigrate")

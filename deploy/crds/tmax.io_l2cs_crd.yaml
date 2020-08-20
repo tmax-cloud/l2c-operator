@@ -207,12 +207,16 @@ spec:
                 - type
                 type: object
               type: array
-            editorPassword:
-              description: VSCode access code
-              type: string
-            editorUrl:
-              description: VSCode URL
-              type: string
+            editor:
+              description: Editor (VSCode) status
+              properties:
+                password:
+                  description: VSCode access code
+                  type: string
+                url:
+                  description: VSCode URL
+                  type: string
+              type: object
             phases:
               description: Each Phases
               items:
@@ -494,6 +498,9 @@ spec:
                 - taskRunName
                 type: object
               type: array
+            wasUrl:
+              description: Migrated Was URL
+              type: string
           type: object
       type: object
   version: v1

@@ -72,6 +72,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &tmaxv1.L2c{},
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -211,7 +218,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		// TODO : if PR is succeeded, create Service for the deployment -- without L2c ownerReference
+		// TODO : if PR is succeeded, create Service for the deployment -- without L2c ownerReference & mark condition succeeded
 	} else { // PipelineRun Not found but status is not false --> Set status not running...
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
@@ -240,7 +247,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			return reconcile.Result{}, err
 		}
 
-		if err := utils.CheckAndCreateObject(cm, instance, r.client, r.scheme); err != nil {
+		if err := utils.CheckAndCreateObject(cm, instance, r.client, r.scheme, false); err != nil {
 			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -250,7 +257,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 	// Generate Pipeline
 	pipeline := pipeline(instance)
-	if err := utils.CheckAndCreateObject(pipeline, instance, r.client, r.scheme); err != nil {
+	if err := utils.CheckAndCreateObject(pipeline, instance, r.client, r.scheme, false); err != nil {
 		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -264,7 +271,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, fmt.Errorf("%s condition not found", tmaxv1.ConditionKeyProjectReady)
 	}
 	if currentReadyState.Status != corev1.ConditionTrue {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionTrue, "all ready", "project is ready to run"); err != nil {
+		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionTrue, "Ready", "project is ready to run"); err != nil {
 			return reconcile.Result{}, err
 		}
 	}
@@ -281,56 +288,53 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		instance.Status.SetIssues(issues)
 
-		// Generate VSCode - ConfigMap/Secret/Service/Ingress/Deployment
-		var idePassword string
-		if instance.Status.EditorPassword != "" {
-			idePassword = instance.Status.EditorPassword
-		} else {
-			idePassword = utils.RandString(30)
-		}
-		ideCm, err := ideConfigMap(instance)
+		// Generate VSCode - Secret/Service/Ingress/Deployment
+		// Generate Secret
+		ideSecret, err := ideSecret(instance)
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
-		ideSecret, err := ideSecret(instance, idePassword)
-		if err != nil {
+		if err := utils.CheckAndCreateObject(ideSecret, instance, r.client, r.scheme, false); err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
+		// Check IDE Password
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ideSecret.Name, Namespace: ideSecret.Namespace}, ideSecret); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+		idePassword := ideSecret.Data["password"]
+
+		// Generate Service
 		ideService, err := ideService(instance)
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
+		if err := utils.CheckAndCreateObject(ideService, instance, r.client, r.scheme, false); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+
+		// Generate Ingress
 		ideIngress, err := ideIngress(instance)
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
+		if err := utils.CheckAndCreateObject(ideIngress, instance, r.client, r.scheme, false); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+
+		// Generate Deployment
 		ideDeploy, err := ideDeployment(instance)
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
-
-		if err := utils.CheckAndCreateObject(ideCm, instance, r.client, r.scheme); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-		if err := utils.CheckAndCreateObject(ideSecret, instance, r.client, r.scheme); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-		if err := utils.CheckAndCreateObject(ideService, instance, r.client, r.scheme); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-		if err := utils.CheckAndCreateObject(ideIngress, instance, r.client, r.scheme); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-		if err := utils.CheckAndCreateObject(ideDeploy, instance, r.client, r.scheme); err != nil {
+		if err := utils.CheckAndCreateObject(ideDeploy, instance, r.client, r.scheme, false); err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
 		}
@@ -352,11 +356,14 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		// Save it to status
-		if instance.Status.EditorPassword == "" {
-			instance.Status.EditorPassword = idePassword
+		if instance.Status.Editor == nil {
+			instance.Status.Editor = &tmaxv1.EditorStatus{}
+		}
+		if instance.Status.Editor.Password != string(idePassword) {
+			instance.Status.Editor.Password = string(idePassword)
 		}
 		if len(ideIngress.Spec.Rules) == 1 && ideIngress.Spec.Rules[0].Host != IdeIngressDefaultHost {
-			instance.Status.EditorUrl = fmt.Sprintf("http://%s", ideIngress.Spec.Rules[0].Host)
+			instance.Status.Editor.Url = fmt.Sprintf("http://%s", ideIngress.Spec.Rules[0].Host)
 		}
 	} else if asFound && analyzeStatus.Status == corev1.ConditionTrue {
 		instance.Status.SonarIssues = nil

@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
@@ -99,30 +98,16 @@ func runHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pr := pipelineRun(l2c, sonar)
-	// Delete first
-	if err := c.Delete(context.TODO(), pr); err != nil && !errors.IsNotFound(err) {
-		log.Error(err, "")
-		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot delete existing PipelineRun")
-		return
-	}
-
 	// Now, we can create PR
-	pr = pipelineRun(l2c, sonar) // Intact pipelineRun for creation
+	pr := pipelineRun(l2c, sonar)
 	s := runtime.NewScheme()
 	if err := apis.AddToScheme(s); err != nil {
 		log.Error(err, "")
 		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot make new scheme")
 		return
 	}
-	if err := controllerutil.SetControllerReference(l2c, pr, s); err != nil {
-		log.Error(err, "")
-		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot set ownerReference to PipelineRun")
-		return
-	}
-	if err := c.Create(context.TODO(), pr); err != nil {
-		log.Error(err, "")
-		_ = utils.RespondError(w, http.StatusInternalServerError, "cannot create PipelineRun")
+	if err := utils.CheckAndCreateObject(pr, l2c, c, s, true); err != nil {
+		_ = utils.RespondError(w, http.StatusAccepted, "cannot create PipelineRun")
 		return
 	}
 

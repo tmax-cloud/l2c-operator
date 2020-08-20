@@ -132,14 +132,22 @@ type L2cStatus struct {
 	// Status of each Task
 	TaskStatus []L2cTaskStatus `json:"taskStatus,omitempty"`
 
-	// VSCode URL
-	EditorUrl string `json:"editorUrl,omitempty"`
-
-	// VSCode access code
-	EditorPassword string `json:"editorPassword,omitempty"`
+	// Editor (VSCode) status
+	Editor *EditorStatus `json:"editor,omitempty"`
 
 	// SonarQube issues
 	SonarIssues []CodeIssue `json:"sonarIssues,omitempty"`
+
+	// Migrated Was URL
+	WasUrl string `json:"wasUrl,omitempty"`
+}
+
+type EditorStatus struct {
+	// VSCode URL
+	Url string `json:"url,omitempty"`
+
+	// VSCode access code
+	Password string `json:"password,omitempty"`
 }
 
 type CodeIssue struct {
