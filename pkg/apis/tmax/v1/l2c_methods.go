@@ -67,7 +67,7 @@ func (s *L2cStatus) SetDefaults() {
 	s.SetDefaultPhases()
 }
 
-var conditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning}
+var conditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning, ConditionKeyProjectSucceeded}
 
 func (s *L2cStatus) SetDefaultConditions() {
 	// Global Conditions
@@ -77,6 +77,10 @@ func (s *L2cStatus) SetDefaultConditions() {
 	}
 	for _, t := range conditions {
 		cond.Type = t
+		if t == ConditionKeyProjectSucceeded {
+			cond.Status = corev1.ConditionUnknown
+			cond.Reason = "Not executed or still running"
+		}
 		s.Conditions = append(s.Conditions, cond)
 	}
 }

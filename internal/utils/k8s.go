@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/tmax-cloud/l2c-operator/internal"
-	_ "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
 func Namespace() (string, error) {
@@ -44,7 +43,7 @@ func ApiServiceName() string {
 	return svcName
 }
 
-func CheckAndCreateObject(obj interface{}, parent metav1.Object, c client.Client, scheme *runtime.Scheme) error {
+func CheckAndCreateObject(obj interface{}, parent metav1.Object, c client.Client, scheme *runtime.Scheme, deleteFirst bool) error {
 	metaObj, isMetaObj := obj.(metav1.Object)
 	if !isMetaObj {
 		return fmt.Errorf("given object is not a meta object")
@@ -52,29 +51,38 @@ func CheckAndCreateObject(obj interface{}, parent metav1.Object, c client.Client
 
 	// Get the object first to check if the object exists
 	runtimeObj, isRuntimeObj := metaObj.(runtime.Object)
+	getObj := runtimeObj.DeepCopyObject()
 	if !isRuntimeObj {
 		return fmt.Errorf("given object is not a runtime object")
 	}
-	err := c.Get(context.TODO(), types.NamespacedName{Name: metaObj.GetName(), Namespace: metaObj.GetNamespace()}, runtimeObj)
-	if err != nil && errors.IsNotFound(err) {
-		// Not found! create one!
-		// First set ownerReference
-		if err := controllerutil.SetControllerReference(parent, metaObj, scheme); err != nil {
-			return fmt.Errorf("ownerRef: %s", err.Error())
-		}
-
-		// Cast to runtime object
-		runtimeObj, isRuntimeObj := metaObj.(runtime.Object)
-		if !isRuntimeObj {
-			return fmt.Errorf("given object is not a runtime object")
-		}
-
-		// Now create
-		if err := c.Create(context.TODO(), runtimeObj); err != nil {
-			return fmt.Errorf("create: %s", err.Error())
-		}
-	} else if err != nil {
+	err := c.Get(context.TODO(), types.NamespacedName{Name: metaObj.GetName(), Namespace: metaObj.GetNamespace()}, getObj)
+	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("get: %s", err.Error())
+	} else if err == nil {
+		if deleteFirst {
+			if err := c.Delete(context.TODO(), getObj); err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+
+	// Not found or deleted! create one!
+	// First set ownerReference
+	if err := controllerutil.SetControllerReference(parent, metaObj, scheme); err != nil {
+		return fmt.Errorf("ownerRef: %s", err.Error())
+	}
+
+	// Cast to runtime object
+	runtimeObj, isRuntimeObj = metaObj.(runtime.Object)
+	if !isRuntimeObj {
+		return fmt.Errorf("given object is not a runtime object")
+	}
+
+	// Now create
+	if err := c.Create(context.TODO(), runtimeObj); err != nil {
+		return fmt.Errorf("create: %s", err.Error())
 	}
 
 	return nil
