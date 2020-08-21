@@ -72,10 +72,10 @@ func dbConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
 			Namespace: l2c.Namespace,
 		},
 		Data: map[string]string{
-			tmaxv1.ConfigMapKeyPvc:    pvcBuf.String(),
-			tmaxv1.ConfigMapKeySvc:    svcBuf.String(),
-			tmaxv1.ConfigMapKeySecret: secretBuf.String(),
-			tmaxv1.ConfigMapKeyDeploy: deployBuf.String(),
+			tmaxv1.DbConfigMapKeyPvc:    pvcBuf.String(),
+			tmaxv1.DbConfigMapKeySvc:    svcBuf.String(),
+			tmaxv1.DbConfigMapKeySecret: secretBuf.String(),
+			tmaxv1.DbConfigMapKeyDeploy: deployBuf.String(),
 		},
 	}, nil
 }

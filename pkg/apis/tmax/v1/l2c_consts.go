@@ -23,10 +23,10 @@ const (
 )
 
 const (
-	ConfigMapKeyPvc    = "pvc.yaml"
-	ConfigMapKeySvc    = "svc.yaml"
-	ConfigMapKeySecret = "secret.yaml"
-	ConfigMapKeyDeploy = "deploy.yaml"
+	DbConfigMapKeyPvc    = "pvc.yaml"
+	DbConfigMapKeySvc    = "svc.yaml"
+	DbConfigMapKeySecret = "secret.yaml"
+	DbConfigMapKeyDeploy = "deploy.yaml"
 )
 
 const (
