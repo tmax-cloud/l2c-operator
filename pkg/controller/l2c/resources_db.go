@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
+	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
 const (
@@ -47,7 +46,7 @@ func dbPvc(l2c *tmaxv1.L2c) (*corev1.PersistentVolumeClaim, error) {
 	}, nil
 }
 
-func dbSvc(l2c *tmaxv1.L2c) (*corev1.Service, error) {
+func dbService(l2c *tmaxv1.L2c) (*corev1.Service, error) {
 	port, err := dbPort(l2c)
 	if err != nil {
 		return nil, err
@@ -69,7 +68,7 @@ func dbSvc(l2c *tmaxv1.L2c) (*corev1.Service, error) {
 					Port: port,
 				},
 			},
-			Selector: dbSvcLabels(l2c),
+			Selector: dbServiceLabels(l2c),
 		},
 	}, nil
 }
@@ -111,11 +110,11 @@ func dbDeploy(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: dbSvcLabels(l2c),
+				MatchLabels: dbServiceLabels(l2c),
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: dbSvcLabels(l2c),
+					Labels: dbServiceLabels(l2c),
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -144,11 +143,12 @@ func dbResourceName(l2c *tmaxv1.L2c) string {
 
 func dbLabels(l2c *tmaxv1.L2c) map[string]string {
 	return map[string]string{
-		"l2c": l2c.Name,
+		"l2c":       l2c.Name,
+		"component": "db",
 	}
 }
 
-func dbSvcLabels(l2c *tmaxv1.L2c) map[string]string {
+func dbServiceLabels(l2c *tmaxv1.L2c) map[string]string {
 	return map[string]string{
 		"l2c":  l2c.Name,
 		"tier": l2c.Spec.Db.To.Type,

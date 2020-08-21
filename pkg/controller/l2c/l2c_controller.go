@@ -24,6 +24,10 @@ import (
 	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
+const (
+	IngressDefaultHost = "waiting.for.ingress.ready"
+)
+
 var log = logf.Log.WithName("controller_l2c")
 
 // Add creates a new L2c Controller and adds it to the Manager. The Manager will set fields on the Controller
@@ -78,6 +82,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	l2cReconciler, isL2cReconciler := r.(*ReconcileL2c)
+	if isL2cReconciler {
+		log.Info("Set ingress watcher!")
+		err = c.Watch(&source.Kind{Type: &networkingv1beta1.Ingress{}}, &handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(l2cReconciler.ingressMapper),
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -219,7 +234,41 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 		}
 
-		// TODO : if PR is succeeded, create Service for the deployment -- without L2c ownerReference & mark condition succeeded
+		// PR succeeded
+		if condition.Status == corev1.ConditionTrue && condition.Reason == string(tektonv1.PipelineRunReasonSuccessful) {
+			// Succeeded condition to true
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectSucceeded, corev1.ConditionTrue, "", ""); err != nil {
+				return reconcile.Result{}, err
+			}
+			wasSvc, err := wasService(instance)
+			if err != nil {
+				log.Error(err, "")
+				return reconcile.Result{}, err
+			}
+			if err := utils.CheckAndCreateObject(wasSvc, nil, r.client, r.scheme, false); err != nil {
+				if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating Service", err.Error()); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, err
+			}
+
+			wasIngress, err := wasIngress(instance)
+			if err != nil {
+				log.Error(err, "")
+				return reconcile.Result{}, err
+			}
+			if err := utils.CheckAndCreateObject(wasIngress, nil, r.client, r.scheme, false); err != nil {
+				if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating Ingress", err.Error()); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{}, err
+			}
+		} else {
+			// Succeeded condition to false
+			if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectSucceeded, corev1.ConditionFalse, "", ""); err != nil {
+				return reconcile.Result{}, err
+			}
+		}
 	} else { // PipelineRun Not found but status is not false --> Set status not running...
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
@@ -241,26 +290,38 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// Generate ConfigMap/Secret (only if any db configuration is set)
+	// Generate ConfigMap for WAS
+	wasCm, err := wasConfigMap(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	if err := utils.CheckAndCreateObject(wasCm, instance, r.client, r.scheme, false); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Generate ConfigMap/Secret for DB (only if any db configuration is set)
 	if instance.Spec.Db != nil {
-		cm, err := dbConfigMap(instance)
+		dbCm, err := dbConfigMap(instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		if err := utils.CheckAndCreateObject(cm, instance, r.client, r.scheme, false); err != nil {
+		if err := utils.CheckAndCreateObject(dbCm, instance, r.client, r.scheme, false); err != nil {
 			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
 			return reconcile.Result{}, err
 		}
 
-		secret, err := secret(instance)
+		dbSecret, err := secret(instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		if err := utils.CheckAndCreateObject(secret, instance, r.client, r.scheme, false); err != nil {
+		if err := utils.CheckAndCreateObject(dbSecret, instance, r.client, r.scheme, false); err != nil {
 			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating secret", err.Error()); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -378,20 +439,6 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		// TODO : Status check for each objects
 
-		// Check if ingress is not configured yet
-		ideIngress = &networkingv1beta1.Ingress{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ideResourceName(instance), Namespace: instance.Namespace}, ideIngress); err != nil && !errors.IsNotFound(err) {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		} else if err == nil && len(ideIngress.Status.LoadBalancer.Ingress) != 0 && len(ideIngress.Spec.Rules) == 1 && ideIngress.Spec.Rules[0].Host == IdeIngressDefaultHost {
-			// If Loadbalancer is given to the ingress, but host is not set, set host!
-			ideIngress.Spec.Rules[0].Host = fmt.Sprintf("ide.%s.%s.%s.nip.io", instance.Name, instance.Namespace, ideIngress.Status.LoadBalancer.Ingress[0].IP)
-			if err := r.client.Update(context.TODO(), ideIngress); err != nil {
-				log.Error(err, "")
-				return reconcile.Result{}, err
-			}
-		}
-
 		// Save it to status
 		if instance.Status.Editor == nil {
 			instance.Status.Editor = &tmaxv1.EditorStatus{}
@@ -399,11 +446,42 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if instance.Status.Editor.Password != string(idePassword) {
 			instance.Status.Editor.Password = string(idePassword)
 		}
-		if len(ideIngress.Spec.Rules) == 1 && ideIngress.Spec.Rules[0].Host != IdeIngressDefaultHost {
-			instance.Status.Editor.Url = fmt.Sprintf("http://%s", ideIngress.Spec.Rules[0].Host)
-		}
 	} else if asFound && analyzeStatus.Status == corev1.ConditionTrue {
 		instance.Status.SonarIssues = nil
+	}
+
+	// Check if WAS ingress is not configured yet
+	// TODO: Refactor - reusable
+	wasIng := &networkingv1beta1.Ingress{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: wasResourceName(instance), Namespace: instance.Namespace}, wasIng); err != nil && !errors.IsNotFound(err) {
+		log.Error(err, "")
+		return reconcile.Result{}, err
+	} else if err == nil && len(wasIng.Status.LoadBalancer.Ingress) != 0 && len(wasIng.Spec.Rules) == 1 && wasIng.Spec.Rules[0].Host == IngressDefaultHost {
+		// If Loadbalancer is given to the ingress, but host is not set, set host!
+		wasIng.Spec.Rules[0].Host = fmt.Sprintf("%s.%s.%s.nip.io", instance.Name, instance.Namespace, wasIng.Status.LoadBalancer.Ingress[0].IP)
+		if err := r.client.Update(context.TODO(), wasIng); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+	} else if len(wasIng.Spec.Rules) == 1 && wasIng.Spec.Rules[0].Host != IngressDefaultHost {
+		instance.Status.WasUrl = fmt.Sprintf("http://%s", wasIng.Spec.Rules[0].Host)
+	}
+
+	// Check if IDE ingress is not configured yet
+	// TODO: Refactor - reusable
+	ideIng := &networkingv1beta1.Ingress{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ideResourceName(instance), Namespace: instance.Namespace}, ideIng); err != nil && !errors.IsNotFound(err) {
+		log.Error(err, "")
+		return reconcile.Result{}, err
+	} else if err == nil && len(ideIng.Status.LoadBalancer.Ingress) != 0 && len(ideIng.Spec.Rules) == 1 && ideIng.Spec.Rules[0].Host == IngressDefaultHost {
+		// If Loadbalancer is given to the ingress, but host is not set, set host!
+		ideIng.Spec.Rules[0].Host = fmt.Sprintf("ide.%s.%s.%s.nip.io", instance.Name, instance.Namespace, ideIng.Status.LoadBalancer.Ingress[0].IP)
+		if err := r.client.Update(context.TODO(), ideIng); err != nil {
+			log.Error(err, "")
+			return reconcile.Result{}, err
+		}
+	} else if len(ideIng.Spec.Rules) == 1 && ideIng.Spec.Rules[0].Host != IngressDefaultHost {
+		instance.Status.Editor.Url = fmt.Sprintf("http://%s", ideIng.Spec.Rules[0].Host)
 	}
 
 	// Update status!
@@ -458,4 +536,26 @@ func (r *ReconcileL2c) setConditionField(field []status.Condition, instance *tma
 	}
 
 	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
+}
+
+// To watch WAS ingress - does not have l2c as an owner
+func (r *ReconcileL2c) ingressMapper(ing handler.MapObject) []reconcile.Request {
+	label := ing.Meta.GetLabels()
+	for k, v := range label {
+		if k == "l2c" {
+			l2c := &tmaxv1.L2c{}
+			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: v, Namespace: ing.Meta.GetNamespace()}, l2c); err != nil {
+				log.Error(err, "")
+				return []reconcile.Request{}
+			}
+			return []reconcile.Request{{
+				NamespacedName: types.NamespacedName{
+					Name:      v,
+					Namespace: ing.Meta.GetNamespace(),
+				},
+			}}
+		}
+	}
+
+	return []reconcile.Request{}
 }

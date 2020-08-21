@@ -14,9 +14,8 @@ import (
 )
 
 const (
-	IdePort               = 8080
-	IdeVolumeConfig       = "config"
-	IdeIngressDefaultHost = "waiting.for.ingress.ready"
+	IdePort         = 8080
+	IdeVolumeConfig = "config"
 )
 
 func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
@@ -31,7 +30,7 @@ func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
 			Namespace: l2c.Namespace,
-			Labels:    ideLabel(l2c),
+			Labels:    ideLabels(l2c),
 		},
 		StringData: map[string]string{
 			"settings.json": fmt.Sprintf(`{
@@ -63,7 +62,7 @@ func ideService(l2c *tmaxv1.L2c) (*corev1.Service, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
 			Namespace: l2c.Namespace,
-			Labels:    ideLabel(l2c),
+			Labels:    ideLabels(l2c),
 		},
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeClusterIP,
@@ -83,11 +82,11 @@ func ideIngress(l2c *tmaxv1.L2c) (*networkingv1beta1.Ingress, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
 			Namespace: l2c.Namespace,
-			Labels:    ideLabel(l2c),
+			Labels:    ideLabels(l2c),
 		},
 		Spec: networkingv1beta1.IngressSpec{
 			Rules: []networkingv1beta1.IngressRule{{
-				Host: IdeIngressDefaultHost,
+				Host: IngressDefaultHost,
 				IngressRuleValue: networkingv1beta1.IngressRuleValue{
 					HTTP: &networkingv1beta1.HTTPIngressRuleValue{
 						Paths: []networkingv1beta1.HTTPIngressPath{{
@@ -111,7 +110,7 @@ func ideDeployment(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
 			Namespace: l2c.Namespace,
-			Labels:    ideLabel(l2c),
+			Labels:    ideLabels(l2c),
 		},
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
@@ -164,7 +163,7 @@ func ideResourceName(l2c *tmaxv1.L2c) string {
 	return fmt.Sprintf("%s-ide", l2c.Name)
 }
 
-func ideLabel(l2c *tmaxv1.L2c) map[string]string {
+func ideLabels(l2c *tmaxv1.L2c) map[string]string {
 	return map[string]string{
 		"l2c":       l2c.Name,
 		"component": "ide",
