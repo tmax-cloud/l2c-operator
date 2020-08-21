@@ -84,6 +84,13 @@ func watchDir() {
 }
 
 func createFile(result apis.ScanResult) {
+	if !utils.DirExists(apis.DirName) {
+		log.Printf("Creating directory %s\n", apis.DirName)
+		if err := os.Mkdir(apis.DirName, 0644); err != nil {
+			log.Fatalf("cannot create dir %s", apis.DirName)
+		}
+	}
+
 	filePath := apis.DirName + "/" + string(result)
 	_, err := fmt.Fprintf(os.Stdout, "Writing file %s\n", filePath)
 	if err != nil {

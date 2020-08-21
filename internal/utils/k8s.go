@@ -70,8 +70,10 @@ func CheckAndCreateObject(obj interface{}, parent metav1.Object, c client.Client
 
 	// Not found or deleted! create one!
 	// First set ownerReference
-	if err := controllerutil.SetControllerReference(parent, metaObj, scheme); err != nil {
-		return fmt.Errorf("ownerRef: %s", err.Error())
+	if parent != nil {
+		if err := controllerutil.SetControllerReference(parent, metaObj, scheme); err != nil {
+			return fmt.Errorf("ownerRef: %s", err.Error())
+		}
 	}
 
 	// Cast to runtime object

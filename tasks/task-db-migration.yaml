@@ -1,0 +1,69 @@
+apiVersion: tekton.dev/v1alpha1
+kind: ClusterTask
+metadata:
+  name: l2c-db-migration
+spec:
+  params:
+    - name: DO_MIGRATE_DB
+      description: Whether or not to migrate DB (TRUE/FALSE)
+      default: 'TRUE'
+    - name: CM_NAME
+      description: ConfigMap name conatining objects for DB deploy
+    - name: SECRET_NAME
+      description: Secret name conatining source/target db info
+    - name: SOURCE_TYPE
+      description: Source DBMS type
+    - name: SOURCE_HOST
+      description: Source DBMS host
+    - name: SOURCE_PORT
+      description: Source DBMS port
+    - name: TARGET_TYPE
+      description: Target DBMS type
+    - name: TARGET_HOST
+      description: Target DBMS host
+    - name: TARGET_PORT
+      description: Target DBMS port
+  steps:
+    - name: deploy-db
+      image: 172.22.11.2:30500/l2c-db-deployer:v0.0.1
+      imagePullPolicy: Always
+      env:
+      - name: DO_MIGRATE_DB
+        value: $(params.DO_MIGRATE_DB)
+      - name: CONFIGMAP_NAME
+        value: $(params.CM_NAME)
+      - name: WAIT_UNTIL_RUNNING
+        value: "true"
+    - name: migrate-db
+      image: 172.22.11.2:30500/tup-tibero:latest
+      imagePullPolicy: Always
+      script: |
+        if [ "$(params.DO_MIGRATE_DB)" != "TRUE" ]; then
+            echo "Skip DB migration";
+            exit 0;
+        fi
+
+        ./TupTibero -c \
+        SOURCE_TYPE=$(params.SOURCE_TYPE) \
+        SOURCE_IP=$(params.SOURCE_HOST) \
+        SOURCE_PORT=$(params.SOURCE_PORT) \
+        SOURCE_USERNAME=$(cat /var/db-secret/source-user) \
+        SOURCE_PASSWORD=$(cat /var/db-secret/source-password) \
+        SOURCE_SID=$(cat /var/db-secret/source-sid) \
+        SOURCE_AS=NORMAL \
+        \
+        TARGET_TYPE=$(params.TARGET_TYPE) \
+        TARGET_IP=$(params.TARGET_HOST) \
+        TARGET_PORT=$(params.TARGET_PORT) \
+        TARGET_USERNAME=$(cat /var/db-secret/target-user) \
+        TARGET_PASSWORD=$(cat /var/db-secret/target-password) \
+        TARGET_SID=$(cat /var/db-secret/target-sid) \
+        FULL=YES
+      workingDir: /root/T-Up
+      volumeMounts:
+        - mountPath: /var/db-secret
+          name: db-secret
+  volumes:
+    - name: db-secret
+      secret:
+        secretName: $(params.SECRET_NAME)

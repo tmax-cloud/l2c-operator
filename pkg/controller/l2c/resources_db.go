@@ -12,6 +12,10 @@ import (
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
+const (
+	DbVolumeName = "db-volume"
+)
+
 // TODO: These resources should be configured using configmap or something else! not in this code!
 func dbPvc(l2c *tmaxv1.L2c) (*corev1.PersistentVolumeClaim, error) {
 	storageClassName := "csi-cephfs-sc" // TODO: Shouldn't be a constant
@@ -91,7 +95,6 @@ func dbSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 }
 
 func dbDeploy(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
-	volumeName := "db-volume"
 	cont, err := dbContainer(l2c)
 	if err != nil {
 		return nil, err
@@ -120,7 +123,7 @@ func dbDeploy(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: volumeName,
+							Name: DbVolumeName,
 							VolumeSource: corev1.VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: dbResourceName(l2c),
@@ -217,9 +220,26 @@ func dbContainer(l2c *tmaxv1.L2c) (*corev1.Container, error) {
 		}
 
 		cont.VolumeMounts = append(cont.VolumeMounts, corev1.VolumeMount{
-			Name:      "database",
+			Name:      DbVolumeName,
 			MountPath: "/tibero/mnt/tibero",
 		})
+
+		cont.Lifecycle = &corev1.Lifecycle{
+			PostStart: &corev1.Handler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"/bin/bash",
+						"-c",
+						`echo 'SELECT COUNT(*) FROM all_tables;' > /tmp/test.sql
+echo 'EXIT;' >> /tmp/test.sql
+echo "#!/bin/bash" > /tmp/probe.sh
+echo "TEST=\$(tbsql $MASTER_USER/$MASTER_PASSWORD @/tmp/test.sql | grep -E '[0-9]* row[s]? selected')" >> /tmp/probe.sh
+echo "[ \"\$TEST\" == \"\" ] && exit 1 || exit 0" >> /tmp/probe.sh
+chmod +x /tmp/probe.sh`,
+					},
+				},
+			},
+		}
 
 		cont.ReadinessProbe = &corev1.Probe{
 			InitialDelaySeconds: 5,
@@ -229,10 +249,7 @@ func dbContainer(l2c *tmaxv1.L2c) (*corev1.Container, error) {
 					Command: []string{
 						"/bin/bash",
 						"-c",
-						`'[ "$(echo ''SELECT COUNT(*) FROM all_tables;'' > /tmp/test.sql &&
-echo ''EXIT;'' >> /tmp/test.sql && tbsql $MASTER_USER/$MASTER_PASSWORD
-@/tmp/test.sql | grep -E ''[0-9]* row[s]? selected'')" == "" ] &&
-exit 1 || exit 0'`,
+						"/tmp/probe.sh",
 					},
 				},
 			},

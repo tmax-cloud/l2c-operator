@@ -70,6 +70,7 @@ func (s *L2cStatus) SetDefaults() {
 var conditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectRunning, ConditionKeyProjectSucceeded}
 
 func (s *L2cStatus) SetDefaultConditions() {
+	s.Conditions = nil
 	// Global Conditions
 	cond := status.Condition{
 		Status:             corev1.ConditionFalse,
@@ -88,6 +89,7 @@ func (s *L2cStatus) SetDefaultConditions() {
 var phases = []status.ConditionType{ConditionKeyPhaseAnalyze, ConditionKeyPhaseDbMigrate, ConditionKeyPhaseBuild, ConditionKeyPhaseDeploy}
 
 func (s *L2cStatus) SetDefaultPhases() {
+	s.Phases = nil
 	// L2c Phases
 	phase := status.Condition{
 		Status:             corev1.ConditionUnknown,

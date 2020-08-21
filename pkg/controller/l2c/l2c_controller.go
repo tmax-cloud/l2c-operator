@@ -202,6 +202,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 		// Clear first
 		instance.Status.TaskStatus = nil
+		instance.Status.SetDefaultPhases()
 		for k, v := range pr.Status.TaskRuns {
 			// Update task status
 			stat := tmaxv1.L2cTaskStatus{TaskRunName: k}
@@ -240,9 +241,9 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		return reconcile.Result{}, err
 	}
 
-	// Generate ConfigMap (only if any db configuration is set)
+	// Generate ConfigMap/Secret (only if any db configuration is set)
 	if instance.Spec.Db != nil {
-		cm, err := configMap(instance)
+		cm, err := dbConfigMap(instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
@@ -253,10 +254,46 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 			}
 			return reconcile.Result{}, err
 		}
+
+		secret, err := secret(instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		if err := utils.CheckAndCreateObject(secret, instance, r.client, r.scheme, false); err != nil {
+			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating secret", err.Error()); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{}, err
+		}
+	}
+
+	// Generate ServiceAccount
+	sa := serviceAccount(instance)
+	if err := utils.CheckAndCreateObject(sa, instance, r.client, r.scheme, false); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating serviceAccount", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
+
+	// Generate RoleBinding
+	rb := roleBinding(instance)
+	if err := utils.CheckAndCreateObject(rb, instance, r.client, r.scheme, false); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating roleBinding", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
 	}
 
 	// Generate Pipeline
-	pipeline := pipeline(instance)
+	pipeline, err := pipeline(instance)
+	if err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{}, err
+	}
 	if err := utils.CheckAndCreateObject(pipeline, instance, r.client, r.scheme, false); err != nil {
 		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
 			return reconcile.Result{}, err
