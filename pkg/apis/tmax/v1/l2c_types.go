@@ -20,10 +20,10 @@ type L2cWas struct {
 	WasPackageServer string `json:"wasPackageServerUrl,omitempty"`
 
 	// WAS source configuration
-	From *L2cWasFrom `json:"from"`
+	From L2cWasFrom `json:"from"`
 
 	// WAS destination configuration
-	To *L2cWasTo `json:"to"`
+	To L2cWasTo `json:"to"`
 }
 
 type L2cGit struct {
@@ -48,7 +48,7 @@ type L2cWasFrom struct {
 	Type string `json:"type"`
 
 	// Git information for WAS source code
-	Git *L2cGit `json:"git"`
+	Git L2cGit `json:"git"`
 }
 
 type L2cWasTo struct {
@@ -57,7 +57,7 @@ type L2cWasTo struct {
 	Type string `json:"type"`
 
 	// Image, in which the built application image would be saved
-	Image *L2cImage `json:"image"`
+	Image L2cImage `json:"image"`
 
 	// Port number WAS would use
 	Port int32 `json:"port"`
@@ -69,10 +69,10 @@ type L2cWasTo struct {
 
 type L2cDb struct {
 	// DB source configuration
-	From *L2cDbFrom `json:"from"`
+	From L2cDbFrom `json:"from"`
 
 	// DB destination configuration
-	To *L2cDbTo `json:"to"`
+	To L2cDbTo `json:"to"`
 }
 
 type L2cDbFrom struct {

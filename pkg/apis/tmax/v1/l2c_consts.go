@@ -29,10 +29,32 @@ const (
 	ConfigMapKeyDeploy = "deploy.yaml"
 )
 
+const (
+	SecretKeySourceUser     = "source-user"
+	SecretKeySourcePassword = "source-password"
+	SecretKeySourceSid      = "source-sid"
+	SecretKeyTargetUser     = "target-user"
+	SecretKeyTargetPassword = "target-password"
+	SecretKeyTargetSid      = "target-sid"
+)
+
 // TaskName* : Actual name of Task object
 const (
 	TaskNameAnalyzeMaven  = "l2c-sonar-scan-java-maven"
 	TaskNameAnalyzeGradle = "l2c-sonar-scan-java-gradle"
+
+	TaskNameDbMigration = "l2c-db-migration"
+
+	TaskNameBuild  = "l2c-build"
+	TaskNameDeploy = "l2c-deploy"
+)
+
+// PipelineResourceName* : Resource name written in Pipeline.spec.resources
+type PipelineResourceName string
+
+const (
+	PipelineResourceNameGit   = PipelineResourceName("git-source")
+	PipelineResourceNameImage = PipelineResourceName("image")
 )
 
 // PipelineTaskName* : Task name written in Pipeline.spec.tasks
@@ -49,8 +71,4 @@ const (
 	PipelineParamNameSonarUrl        = "sonar-url"
 	PipelineParamNameSonarToken      = "sonar-token"
 	PipelineParamNameSonarProjectKey = "sonar-project-id"
-)
-
-const (
-	PipelineResourceNameGit = "git-source"
 )

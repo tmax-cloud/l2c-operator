@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1alpha1
+kind: ClusterTask
+metadata:
+  name: l2c-deploy
+spec:
+  params:
+    - name: app-name
+      description: Deployment name
+    - name: image-url
+      description: Updated image url:tag
+      default: $(inputs.resources.image.url)
+    - name: deploy-cfg-name
+      description: Deployment configmap name
+      default: ""
+    - name: deploy-env-json
+      description: Deployment environment variable in JSON object form
+      default: "{}"
+  resources:
+    inputs:
+      - name: image
+        type: image
+  steps:
+    - name: create-yaml
+      image: tmaxcloudck/cicd-util:1.0.2
+      imagePullPolicy: Always
+      command:
+        - "make-deployment"
+      args:
+        - $(inputs.params.app-name)
+        - $(inputs.params.image-url)
+      volumeMounts:
+        - mountPath: /generate
+          name: generate
+      env:
+        - name: CONFIGMAP_NAME
+          value: $(inputs.params.deploy-cfg-name)
+        - name: DEPLOY_ENV_JSON
+          value: $(inputs.params.deploy-env-json)
+    - name: run-kubectl
+      image: tmaxcloudck/cicd-util:1.0.2
+      command:
+        - "kubectl"
+      args:
+        - apply
+        - -f
+        - /generate/deployment.yaml
+      volumeMounts:
+        - mountPath: /generate
+          name: generate
+  volumes:
+    - emptyDir: {}
+      name: generate
