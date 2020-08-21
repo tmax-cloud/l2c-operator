@@ -63,9 +63,9 @@ func main() {
 	deserializer := scheme.Codecs.UniversalDeserializer()
 
 	// Get & Create PVC
-	pvcString, ok := cm.Data[l2cv1.ConfigMapKeyPvc]
+	pvcString, ok := cm.Data[l2cv1.DbConfigMapKeyPvc]
 	if !ok {
-		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.ConfigMapKeyPvc, configMapName)
+		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.DbConfigMapKeyPvc, configMapName)
 	}
 	obj, _, err := deserializer.Decode([]byte(pvcString), nil, nil)
 	if err != nil {
@@ -74,7 +74,7 @@ func main() {
 
 	pvc, isPvc := obj.(*corev1.PersistentVolumeClaim)
 	if !isPvc {
-		log.Fatalf("%s should contain PVC yaml (currently %s)\n", l2cv1.ConfigMapKeyPvc, reflect.TypeOf(obj).String())
+		log.Fatalf("%s should contain PVC yaml (currently %s)\n", l2cv1.DbConfigMapKeyPvc, reflect.TypeOf(obj).String())
 	}
 	if err := utils.CheckAndCreateObject(pvc, nil, c, nil, false); err != nil {
 		log.Fatal(err)
@@ -82,9 +82,9 @@ func main() {
 	log.Printf("Successfully created PVC %s\n", pvc.Name)
 
 	// Get & Create Service
-	svcString, ok := cm.Data[l2cv1.ConfigMapKeySvc]
+	svcString, ok := cm.Data[l2cv1.DbConfigMapKeySvc]
 	if !ok {
-		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.ConfigMapKeySvc, configMapName)
+		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.DbConfigMapKeySvc, configMapName)
 	}
 	obj, _, err = deserializer.Decode([]byte(svcString), nil, nil)
 	if err != nil {
@@ -93,7 +93,7 @@ func main() {
 
 	svc, isSvc := obj.(*corev1.Service)
 	if !isSvc {
-		log.Fatalf("%s should contain Service yaml (currently %s)\n", l2cv1.ConfigMapKeySvc, reflect.TypeOf(obj).String())
+		log.Fatalf("%s should contain Service yaml (currently %s)\n", l2cv1.DbConfigMapKeySvc, reflect.TypeOf(obj).String())
 	}
 	if err := utils.CheckAndCreateObject(svc, nil, c, nil, false); err != nil {
 		log.Fatal(err)
@@ -101,9 +101,9 @@ func main() {
 	log.Printf("Successfully created Service %s\n", svc.Name)
 
 	// Get & Create Secret
-	secretString, ok := cm.Data[l2cv1.ConfigMapKeySecret]
+	secretString, ok := cm.Data[l2cv1.DbConfigMapKeySecret]
 	if !ok {
-		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.ConfigMapKeySecret, configMapName)
+		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.DbConfigMapKeySecret, configMapName)
 	}
 	obj, _, err = deserializer.Decode([]byte(secretString), nil, nil)
 	if err != nil {
@@ -112,7 +112,7 @@ func main() {
 
 	secret, isSecret := obj.(*corev1.Secret)
 	if !isSecret {
-		log.Fatalf("%s should contain Secret yaml (currently %s)\n", l2cv1.ConfigMapKeySecret, reflect.TypeOf(obj).String())
+		log.Fatalf("%s should contain Secret yaml (currently %s)\n", l2cv1.DbConfigMapKeySecret, reflect.TypeOf(obj).String())
 	}
 	if err := utils.CheckAndCreateObject(secret, nil, c, nil, false); err != nil {
 		log.Fatal(err)
@@ -120,9 +120,9 @@ func main() {
 	log.Printf("Successfully created Secret %s\n", secret.Name)
 
 	// Get & Create Deployment
-	deployString, ok := cm.Data[l2cv1.ConfigMapKeyDeploy]
+	deployString, ok := cm.Data[l2cv1.DbConfigMapKeyDeploy]
 	if !ok {
-		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.ConfigMapKeyDeploy, configMapName)
+		log.Fatalf("key %s does not exist in ConfigMap %s\n", l2cv1.DbConfigMapKeyDeploy, configMapName)
 	}
 	obj, _, err = deserializer.Decode([]byte(deployString), nil, nil)
 	if err != nil {
@@ -131,7 +131,7 @@ func main() {
 
 	deploy, isDeploy := obj.(*appsv1.Deployment)
 	if !isDeploy {
-		log.Fatalf("%s should contain Deployment yaml (currently %s)\n", l2cv1.ConfigMapKeyDeploy, reflect.TypeOf(obj).String())
+		log.Fatalf("%s should contain Deployment yaml (currently %s)\n", l2cv1.DbConfigMapKeyDeploy, reflect.TypeOf(obj).String())
 	}
 	if err := utils.CheckAndCreateObject(deploy, nil, c, nil, false); err != nil {
 		log.Fatal(err)

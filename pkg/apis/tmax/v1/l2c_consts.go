@@ -23,19 +23,19 @@ const (
 )
 
 const (
-	ConfigMapKeyPvc    = "pvc.yaml"
-	ConfigMapKeySvc    = "svc.yaml"
-	ConfigMapKeySecret = "secret.yaml"
-	ConfigMapKeyDeploy = "deploy.yaml"
+	DbConfigMapKeyPvc    = "pvc.yaml"
+	DbConfigMapKeySvc    = "svc.yaml"
+	DbConfigMapKeySecret = "secret.yaml"
+	DbConfigMapKeyDeploy = "deploy.yaml"
 )
 
 const (
-	SecretKeySourceUser     = "source-user"
-	SecretKeySourcePassword = "source-password"
-	SecretKeySourceSid      = "source-sid"
-	SecretKeyTargetUser     = "target-user"
-	SecretKeyTargetPassword = "target-password"
-	SecretKeyTargetSid      = "target-sid"
+	DbSecretKeySourceUser     = "source-user"
+	DbSecretKeySourcePassword = "source-password"
+	DbSecretKeySourceSid      = "source-sid"
+	DbSecretKeyTargetUser     = "target-user"
+	DbSecretKeyTargetPassword = "target-password"
+	DbSecretKeyTargetSid      = "target-sid"
 )
 
 // TaskName* : Actual name of Task object
