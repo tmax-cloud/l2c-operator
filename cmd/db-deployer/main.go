@@ -10,7 +10,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -18,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	l2cv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
@@ -71,27 +71,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	switch pvc := obj.(type) {
-	case *corev1.PersistentVolumeClaim:
-		pvc.ObjectMeta.Namespace = ns
-		// Check if exists
-		found := &corev1.PersistentVolumeClaim{}
-		if err := c.Get(context.TODO(), types.NamespacedName{Name: pvc.Name, Namespace: pvc.Namespace}, found); err != nil {
-			if kerrors.IsNotFound(err) {
-				// Create if not exists
-				if err := c.Create(context.TODO(), pvc); err != nil {
-					log.Fatal(err)
-				}
-				log.Printf("Successfully created PVC %s\n", pvc.ObjectMeta.Name)
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			log.Printf("PersistentVolumeClaim %s already exists\n", pvc.Name)
-		}
-	default:
-		log.Fatalf("%s should contain PersistentVolumeClaim yaml (currently %s)\n", l2cv1.ConfigMapKeyPvc, reflect.TypeOf(obj).String())
+
+	pvc, isPvc := obj.(*corev1.PersistentVolumeClaim)
+	if !isPvc {
+		log.Fatalf("%s should contain PVC yaml (currently %s)\n", l2cv1.ConfigMapKeyPvc, reflect.TypeOf(obj).String())
 	}
+	if err := utils.CheckAndCreateObject(pvc, nil, c, nil, false); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Successfully created PVC %s\n", pvc.Name)
 
 	// Get & Create Service
 	svcString, ok := cm.Data[l2cv1.ConfigMapKeySvc]
@@ -102,27 +90,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	switch svc := obj.(type) {
-	case *corev1.Service:
-		svc.ObjectMeta.Namespace = ns
-		// Check if exists
-		found := &corev1.Service{}
-		if err := c.Get(context.TODO(), types.NamespacedName{Name: svc.Name, Namespace: svc.Namespace}, found); err != nil {
-			if kerrors.IsNotFound(err) {
-				// Create if not exists
-				if err := c.Create(context.TODO(), svc); err != nil {
-					log.Fatal(err)
-				}
-				log.Printf("Successfully created Service %s\n", svc.ObjectMeta.Name)
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			log.Printf("Service %s already exists\n", svc.Name)
-		}
-	default:
+
+	svc, isSvc := obj.(*corev1.Service)
+	if !isSvc {
 		log.Fatalf("%s should contain Service yaml (currently %s)\n", l2cv1.ConfigMapKeySvc, reflect.TypeOf(obj).String())
 	}
+	if err := utils.CheckAndCreateObject(svc, nil, c, nil, false); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Successfully created Service %s\n", svc.Name)
 
 	// Get & Create Secret
 	secretString, ok := cm.Data[l2cv1.ConfigMapKeySecret]
@@ -133,27 +109,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	switch secret := obj.(type) {
-	case *corev1.Secret:
-		secret.ObjectMeta.Namespace = ns
-		// Check if exists
-		found := &corev1.Secret{}
-		if err := c.Get(context.TODO(), types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, found); err != nil {
-			if kerrors.IsNotFound(err) {
-				// Create if not exists
-				if err := c.Create(context.TODO(), secret); err != nil {
-					log.Fatal(err)
-				}
-				log.Printf("Successfully created Secret %s\n", secret.ObjectMeta.Name)
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			log.Printf("Secret %s already exists\n", secret.Name)
-		}
-	default:
+
+	secret, isSecret := obj.(*corev1.Secret)
+	if !isSecret {
 		log.Fatalf("%s should contain Secret yaml (currently %s)\n", l2cv1.ConfigMapKeySecret, reflect.TypeOf(obj).String())
 	}
+	if err := utils.CheckAndCreateObject(secret, nil, c, nil, false); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Successfully created Secret %s\n", secret.Name)
 
 	// Get & Create Deployment
 	deployString, ok := cm.Data[l2cv1.ConfigMapKeyDeploy]
@@ -164,31 +128,18 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var deployKey types.NamespacedName
-	var deployLabels map[string]string
-	switch deploy := obj.(type) {
-	case *appsv1.Deployment:
-		deploy.ObjectMeta.Namespace = ns
-		// Check if exists
-		found := &appsv1.Deployment{}
-		deployKey = types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}
-		deployLabels = deploy.ObjectMeta.Labels
-		if err := c.Get(context.TODO(), deployKey, found); err != nil {
-			if kerrors.IsNotFound(err) {
-				// Create if not exists
-				if err := c.Create(context.TODO(), deploy); err != nil {
-					log.Fatal(err)
-				}
-				log.Printf("Successfully created Deployment %s\n", deploy.ObjectMeta.Name)
-			} else {
-				log.Fatal(err)
-			}
-		} else {
-			log.Printf("Deployment %s already exists\n", deploy.Name)
-		}
-	default:
+
+	deploy, isDeploy := obj.(*appsv1.Deployment)
+	if !isDeploy {
 		log.Fatalf("%s should contain Deployment yaml (currently %s)\n", l2cv1.ConfigMapKeyDeploy, reflect.TypeOf(obj).String())
 	}
+	if err := utils.CheckAndCreateObject(deploy, nil, c, nil, false); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Successfully created Deployment %s\n", deploy.Name)
+
+	deployKey := types.NamespacedName{Name: deploy.Name, Namespace: deploy.Namespace}
+	deployLabels := deploy.ObjectMeta.Labels
 
 	log.Println("Successfully created all components")
 
@@ -214,19 +165,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for event := range w.ResultChan() {
-		switch dep := event.Object.(type) {
-		case *appsv1.Deployment:
-			if dep.Name == deployKey.Name {
-				if dep.Status.ReadyReplicas > 0 {
-					log.Println("Deployment is running!")
-					os.Exit(0)
-				} else {
-					log.Println("Deployment is not ready yet")
+	for {
+		for event := range w.ResultChan() {
+			switch dep := event.Object.(type) {
+			case *appsv1.Deployment:
+				if dep.Name == deployKey.Name {
+					if dep.Status.ReadyReplicas > 0 {
+						log.Println("Deployment is running!")
+						os.Exit(0)
+					} else {
+						log.Println("Deployment is not ready yet")
+					}
 				}
+			default:
+				log.Printf("Object type is not Deployment (%+v)\n", event.Object)
 			}
-		default:
-			log.Printf("Object type is not Deployment (%+v)\n", event.Object)
 		}
 	}
 }
