@@ -47,8 +47,6 @@ func NewServer(cl client.Client, s *SonarQube) *SonarServer {
 	}
 
 	router := mux.NewRouter()
-	router.PathPrefix("/api").HandlerFunc(server.ApiProxyHandleFunc)
-	router.HandleFunc("/api", server.ApiProxyHandleFunc)
 	router.PathPrefix("/webhook").HandlerFunc(server.WebhookHandleFunc)
 	router.HandleFunc("/webhook", server.WebhookHandleFunc)
 

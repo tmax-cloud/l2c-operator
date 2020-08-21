@@ -121,9 +121,12 @@ func (s *SonarQube) secret() *corev1.Secret {
 			Labels:    label,
 		},
 		StringData: map[string]string{
-			SecretKeyAdminId: DefaultAdminId,
-			SecretKeyAdminPw: DefaultAdminPw,
-			SecretKeyToken:   "",
+			SecretKeyAdminId:       DefaultAdminId,
+			SecretKeyAdminPw:       DefaultAdminPw,
+			SecretKeyToken:         "",
+			SecretKeyAnalyzerId:    DefaultAnalyzerId,
+			SecretKeyAnalyzerPw:    DefaultAnalyzerPw,
+			SecretKeyAnalyzerToken: "",
 		},
 	}
 }

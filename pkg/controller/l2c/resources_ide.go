@@ -18,12 +18,7 @@ const (
 	IdeVolumeConfig = "config"
 )
 
-func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
-	ns, err := utils.Namespace()
-	if err != nil {
-		return nil, err
-	}
-
+func ideSecret(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *corev1.Secret {
 	password := utils.RandString(30)
 
 	return &corev1.Secret{
@@ -36,8 +31,8 @@ func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 			"settings.json": fmt.Sprintf(`{
         "sonarlint.connectedMode.connections.sonarqube": [
           {
-            "serverUrl": "http://%s.%s:%d/",
-            "token": "q934fh83fw4h98w34fh87"
+            "serverUrl": "%s/",
+            "token": "%s"
           }
         ],
         "sonarlint.connectedMode.project": {
@@ -47,14 +42,14 @@ func ideSecret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
         "sonarlint.ls.javaHome": "/usr/lib/jvm/java-11-openjdk-amd64",
         "java.home": "/usr/lib/jvm/java-11-openjdk-amd64"
       }
-`, utils.ApiServiceName(), ns, sonarqube.Port, l2c.GetSonarProjectName()),
+`, sonar.URL, sonar.AnalyzerToken, l2c.GetSonarProjectName()),
 			"config.yaml": fmt.Sprintf(`bind-addr: 0.0.0.0:%d
 auth: password
 password: %s
 cert: false`, IdePort, password),
 			"password": password,
 		},
-	}, nil
+	}
 }
 
 func ideService(l2c *tmaxv1.L2c) (*corev1.Service, error) {

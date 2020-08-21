@@ -19,6 +19,9 @@ const (
 	DefaultAdminId = "admin"
 	DefaultAdminPw = "admin"
 
+	DefaultAnalyzerId = "analyzer"
+	DefaultAnalyzerPw = "analyzer"
+
 	DefaultResourceName = "l2c-managed-sonarqube"
 
 	DefaultImage = "azssi/working:0.0.1" // TODO!!
@@ -31,6 +34,10 @@ const (
 	SecretKeyAdminId = "adminId"
 	SecretKeyAdminPw = "adminPw"
 	SecretKeyToken   = "token"
+
+	SecretKeyAnalyzerId    = "analyzerId"
+	SecretKeyAnalyzerPw    = "analyzerPw"
+	SecretKeyAnalyzerToken = "analyzerToken"
 )
 
 var log = logf.Log.WithName("sonarqube")
@@ -39,11 +46,15 @@ var depLabel = map[string]string{"app": "l2c-sonarqube"}
 var label = map[string]string{"owned-by": "l2c-operator"}
 
 type SonarQube struct {
-	URL   string
-	Token string
+	URL           string
+	Token         string
+	AnalyzerToken string
 
 	AdminId string
 	AdminPw string
+
+	AnalyzerId string
+	AnalyzerPw string
 
 	ResourceName string
 	Namespace    string
@@ -145,6 +156,24 @@ func (s *SonarQube) Start() {
 	s.AdminPw = string(adminPw)
 	if tokenExist {
 		s.Token = string(token)
+	}
+
+	analyzerId, exist := secret.Data[SecretKeyAnalyzerId]
+	if !exist {
+		log.Error(fmt.Errorf("there is no secret key %s", SecretKeyAnalyzerId), "")
+		os.Exit(1)
+	}
+	analyzerPw, exist := secret.Data[SecretKeyAnalyzerPw]
+	if !exist {
+		log.Error(fmt.Errorf("there is no secret key %s", SecretKeyAnalyzerPw), "")
+		os.Exit(1)
+	}
+	analyzerToken, tokenExist := secret.Data[SecretKeyAnalyzerToken]
+
+	s.AnalyzerId = string(analyzerId)
+	s.AnalyzerPw = string(analyzerPw)
+	if tokenExist {
+		s.AnalyzerToken = string(analyzerToken)
 	}
 
 	// Get and create pvc if not exists
@@ -271,7 +300,7 @@ func (s *SonarQube) UpdateCred() error {
 
 		if s.AdminId == DefaultAdminId && s.AdminPw == DefaultAdminPw {
 			newPw := utils.RandString(10)
-			if err := s.ChangePassword(newPw); err != nil {
+			if err := s.ChangeAdminPassword(newPw); err != nil {
 				return err
 			}
 
@@ -284,7 +313,7 @@ func (s *SonarQube) UpdateCred() error {
 		}
 	}
 
-	// Update Token
+	// Update Admin Token
 	if s.Token == "" {
 		secret, err := secretClient.Get(s.ResourceName, metav1.GetOptions{})
 		if err != nil {
@@ -299,7 +328,7 @@ func (s *SonarQube) UpdateCred() error {
 		s.Token = string(token)
 
 		if s.Token == "" {
-			newToken, err := s.GenerateToken()
+			newToken, err := s.GenerateToken(s.AdminId, s.AdminPw)
 			if err != nil {
 				return err
 			}
@@ -310,6 +339,48 @@ func (s *SonarQube) UpdateCred() error {
 			}
 
 			s.Token = newToken
+		}
+	}
+
+	// Remove all permissions from default group (sonar-users)
+	if err := s.RemoveAllGroupPermissions("sonar-users"); err != nil {
+		return err
+	}
+	// Create analyzer account
+	if err := s.CreateUser(s.AnalyzerId, s.AnalyzerPw); err != nil {
+		return err
+	}
+	// Add analyzer permission to analyzer account
+	if err := s.AddUserPermission(s.AnalyzerId, "scan"); err != nil {
+		return err
+	}
+
+	// Update Analyzer Token
+	if s.AnalyzerToken == "" {
+		secret, err := secretClient.Get(s.ResourceName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		token, exist := secret.Data[SecretKeyAnalyzerToken]
+		if !exist {
+			return fmt.Errorf("there is no secret key %s", SecretKeyAnalyzerToken)
+		}
+
+		s.AnalyzerToken = string(token)
+
+		if s.AnalyzerToken == "" {
+			newToken, err := s.GenerateToken(s.AnalyzerId, s.AnalyzerPw)
+			if err != nil {
+				return err
+			}
+
+			secret.Data[SecretKeyAnalyzerToken] = []byte(newToken)
+			if _, err := secretClient.Update(secret); err != nil {
+				return err
+			}
+
+			s.AnalyzerToken = newToken
 		}
 	}
 

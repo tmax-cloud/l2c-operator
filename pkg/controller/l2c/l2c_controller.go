@@ -388,11 +388,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 
 		// Generate VSCode - Secret/Service/Ingress/Deployment
 		// Generate Secret
-		ideSecret, err := ideSecret(instance)
-		if err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
+		ideSecret := ideSecret(instance, r.sonarQube)
 		if err := utils.CheckAndCreateObject(ideSecret, instance, r.client, r.scheme, false); err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err
