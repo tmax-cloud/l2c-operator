@@ -416,7 +416,7 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		}
 
 		// Generate Ingress
-		ideIngress, err := ideIng(instance)
+		ideIngress, err := ideIngress(instance)
 		if err != nil {
 			log.Error(err, "")
 			return reconcile.Result{}, err

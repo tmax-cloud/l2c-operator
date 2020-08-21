@@ -77,7 +77,7 @@ func ideService(l2c *tmaxv1.L2c) (*corev1.Service, error) {
 	}, nil
 }
 
-func ideIng(l2c *tmaxv1.L2c) (*networkingv1beta1.Ingress, error) {
+func ideIngress(l2c *tmaxv1.L2c) (*networkingv1beta1.Ingress, error) {
 	return &networkingv1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ideResourceName(l2c),
