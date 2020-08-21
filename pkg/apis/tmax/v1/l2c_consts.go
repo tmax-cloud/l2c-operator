@@ -30,12 +30,12 @@ const (
 )
 
 const (
-	SecretKeySourceUser     = "source-user"
-	SecretKeySourcePassword = "source-password"
-	SecretKeySourceSid      = "source-sid"
-	SecretKeyTargetUser     = "target-user"
-	SecretKeyTargetPassword = "target-password"
-	SecretKeyTargetSid      = "target-sid"
+	DbSecretKeySourceUser     = "source-user"
+	DbSecretKeySourcePassword = "source-password"
+	DbSecretKeySourceSid      = "source-sid"
+	DbSecretKeyTargetUser     = "target-user"
+	DbSecretKeyTargetPassword = "target-password"
+	DbSecretKeyTargetSid      = "target-sid"
 )
 
 // TaskName* : Actual name of Task object

@@ -91,12 +91,12 @@ func secret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 			Namespace: l2c.Namespace,
 		},
 		StringData: map[string]string{
-			tmaxv1.SecretKeySourceUser:     l2c.Spec.Db.From.User,
-			tmaxv1.SecretKeySourcePassword: l2c.Spec.Db.From.Password,
-			tmaxv1.SecretKeySourceSid:      l2c.Spec.Db.From.Sid,
-			tmaxv1.SecretKeyTargetUser:     l2c.Spec.Db.To.User,
-			tmaxv1.SecretKeyTargetPassword: l2c.Spec.Db.To.Password,
-			tmaxv1.SecretKeyTargetSid:      l2c.Spec.Db.To.User,
+			tmaxv1.DbSecretKeySourceUser:     l2c.Spec.Db.From.User,
+			tmaxv1.DbSecretKeySourcePassword: l2c.Spec.Db.From.Password,
+			tmaxv1.DbSecretKeySourceSid:      l2c.Spec.Db.From.Sid,
+			tmaxv1.DbSecretKeyTargetUser:     l2c.Spec.Db.To.User,
+			tmaxv1.DbSecretKeyTargetPassword: l2c.Spec.Db.To.Password,
+			tmaxv1.DbSecretKeyTargetSid:      l2c.Spec.Db.To.User,
 		},
 	}, nil
 }
