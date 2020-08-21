@@ -82,6 +82,37 @@ type SonarIssue struct {
 	X map[string]interface{} `json:"-"`
 }
 
+// Users
+// +k8s:deepcopy-gen=false
+type SonarUserSearchResult struct {
+	Users []SonarUser `json:"users"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarUser struct {
+	Login string `json:"login"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// Groups
+// +k8s:deepcopy-gen=false
+type SonarGroupSearchResult struct {
+	Groups []SonarGroup `json:"groups"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarGroup struct {
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions"`
+
+	X map[string]interface{} `json:"-"`
+}
+
 // Tokens
 // +k8s:deepcopy-gen=false
 type SonarToken struct {
