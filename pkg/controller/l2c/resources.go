@@ -15,6 +15,7 @@ import (
 )
 
 // ConfigMap for DB deployment
+// This does not belong to resources_db 'cause it's for L2c process itself, not for DB runtime
 func dbConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
 	if l2c.Spec.Db == nil {
 		return nil, fmt.Errorf("db migration is not configured")
@@ -37,7 +38,7 @@ func dbConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
 	}
 
 	// Service object
-	svc, err := dbSvc(l2c)
+	svc, err := dbService(l2c)
 	if err != nil {
 		return nil, err
 	}
@@ -68,14 +69,46 @@ func dbConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbConfigMapName(l2c),
+			Name:      dbResourceName(l2c),
 			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
 		},
 		Data: map[string]string{
 			tmaxv1.DbConfigMapKeyPvc:    pvcBuf.String(),
 			tmaxv1.DbConfigMapKeySvc:    svcBuf.String(),
 			tmaxv1.DbConfigMapKeySecret: secretBuf.String(),
 			tmaxv1.DbConfigMapKeyDeploy: deployBuf.String(),
+		},
+	}, nil
+}
+
+// ConfigMap for WAS deployment spec
+// This does not belong to resources_Was 'cause it's for L2c process itself, not for WAS runtime
+func wasConfigMap(l2c *tmaxv1.L2c) (*corev1.ConfigMap, error) {
+	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, nil, nil, json.SerializerOptions{
+		Yaml:   true,
+		Pretty: true,
+		Strict: true,
+	})
+
+	// Deployment object
+	deploy, err := wasDeploy(l2c)
+	if err != nil {
+		return nil, err
+	}
+	deployBuf := new(bytes.Buffer)
+	if err := serializer.Encode(deploy, deployBuf); err != nil {
+		return nil, err
+	}
+
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      wasResourceName(l2c),
+			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
+		},
+		Data: map[string]string{
+			"deploy-spec.yaml": deployBuf.String(),
 		},
 	}, nil
 }
@@ -87,8 +120,9 @@ func secret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName(l2c),
+			Name:      resourceName(l2c),
 			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
 		},
 		StringData: map[string]string{
 			tmaxv1.DbSecretKeySourceUser:     l2c.Spec.Db.From.User,
@@ -104,8 +138,9 @@ func secret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 func serviceAccount(l2c *tmaxv1.L2c) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      l2c.Name,
+			Name:      resourceName(l2c),
 			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
 		},
 	}
 }
@@ -113,8 +148,9 @@ func serviceAccount(l2c *tmaxv1.L2c) *corev1.ServiceAccount {
 func roleBinding(l2c *tmaxv1.L2c) *rbacv1.RoleBinding {
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      l2c.Name,
+			Name:      resourceName(l2c),
 			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,
@@ -154,8 +190,9 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 
 	return &tektonv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      l2c.Name,
+			Name:      resourceName(l2c),
 			Namespace: l2c.Namespace,
+			Labels:    labels(l2c),
 		},
 		Spec: tektonv1.PipelineSpec{
 			Resources: []tektonv1.PipelineDeclaredResource{{
@@ -197,10 +234,10 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
 				}, {
 					Name:  "CM_NAME",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbConfigMapName(l2c)},
+					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
 				}, {
 					Name:  "SECRET_NAME",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: secretName(l2c)},
+					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: resourceName(l2c)},
 				}, {
 					Name:  "SOURCE_TYPE",
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: strings.ToUpper(l2c.Spec.Db.From.Type)},
@@ -257,6 +294,9 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 				}, {
 					Name:  "image-url",
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(tasks.%s.results.image-url)", string(tmaxv1.PipelineTaskNameBuild))},
+				}, {
+					Name:  "deploy-cfg-name",
+					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: wasResourceName(l2c)},
 				}},
 				RunAfter: []string{string(tmaxv1.PipelineTaskNameBuild)},
 			}},
@@ -264,12 +304,16 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 	}, nil
 }
 
-func dbConfigMapName(l2c *tmaxv1.L2c) string {
-	return fmt.Sprintf("%s-db", l2c.Name)
+// Supporting functions
+func resourceName(l2c *tmaxv1.L2c) string {
+	return l2c.Name
 }
 
-func secretName(l2c *tmaxv1.L2c) string {
-	return l2c.Name
+func labels(l2c *tmaxv1.L2c) map[string]string {
+	return map[string]string{
+		"l2c":       l2c.Name,
+		"component": "l2c",
+	}
 }
 
 func builderImage(l2c *tmaxv1.L2c) (string, error) {
