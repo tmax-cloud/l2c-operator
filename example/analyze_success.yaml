@@ -1,7 +1,7 @@
 apiVersion: tmax.io/v1
 kind: L2c
 metadata:
-  name: l2c-analyze-fail
+  name: l2c-analyze-success
 spec:
   was:
     from:
