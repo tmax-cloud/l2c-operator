@@ -273,6 +273,13 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectRunning, corev1.ConditionFalse, "", ""); err != nil {
 			return reconcile.Result{}, err
 		}
+
+		// Check if there were any phases with reason 'Running' -> change to 'Canceled'
+		for i, p := range instance.Status.Phases {
+			if p.Reason == tmaxv1.ReasonPhaseRunning {
+				instance.Status.Phases[i].Reason = tmaxv1.ReasonPhaseCanceled
+			}
+		}
 	}
 
 	// Create SonarQube Project

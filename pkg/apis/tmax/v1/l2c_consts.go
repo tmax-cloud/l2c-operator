@@ -17,6 +17,7 @@ const (
 
 const (
 	ReasonPhaseRunning     = status.ConditionReason("Running")
+	ReasonPhaseCanceled    = status.ConditionReason("Canceled")
 	ReasonPhaseFailed      = status.ConditionReason("Failed")
 	ReasonPhaseSucceeded   = status.ConditionReason("Succeeded")
 	ReasonPhaseNotExecuted = status.ConditionReason("Not executed yet")
