@@ -454,37 +454,13 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	}
 
 	// Check if WAS ingress is not configured yet
-	// TODO: Refactor - reusable
-	wasIng := &networkingv1beta1.Ingress{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: wasResourceName(instance), Namespace: instance.Namespace}, wasIng); err != nil && !errors.IsNotFound(err) {
+	if err := r.updateWasIngressUrl(instance); err != nil {
 		log.Error(err, "")
 		return reconcile.Result{}, err
-	} else if err == nil && len(wasIng.Status.LoadBalancer.Ingress) != 0 && len(wasIng.Spec.Rules) == 1 && wasIng.Spec.Rules[0].Host == IngressDefaultHost {
-		// If Loadbalancer is given to the ingress, but host is not set, set host!
-		wasIng.Spec.Rules[0].Host = fmt.Sprintf("%s.%s.%s.nip.io", instance.Name, instance.Namespace, wasIng.Status.LoadBalancer.Ingress[0].IP)
-		if err := r.client.Update(context.TODO(), wasIng); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-	} else if len(wasIng.Spec.Rules) == 1 && wasIng.Spec.Rules[0].Host != IngressDefaultHost {
-		instance.Status.WasUrl = fmt.Sprintf("http://%s", wasIng.Spec.Rules[0].Host)
 	}
-
-	// Check if IDE ingress is not configured yet
-	// TODO: Refactor - reusable
-	ideIng := &networkingv1beta1.Ingress{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ideResourceName(instance), Namespace: instance.Namespace}, ideIng); err != nil && !errors.IsNotFound(err) {
+	if err := r.updateIdeIngressUrl(instance); err != nil {
 		log.Error(err, "")
 		return reconcile.Result{}, err
-	} else if err == nil && len(ideIng.Status.LoadBalancer.Ingress) != 0 && len(ideIng.Spec.Rules) == 1 && ideIng.Spec.Rules[0].Host == IngressDefaultHost {
-		// If Loadbalancer is given to the ingress, but host is not set, set host!
-		ideIng.Spec.Rules[0].Host = fmt.Sprintf("ide.%s.%s.%s.nip.io", instance.Name, instance.Namespace, ideIng.Status.LoadBalancer.Ingress[0].IP)
-		if err := r.client.Update(context.TODO(), ideIng); err != nil {
-			log.Error(err, "")
-			return reconcile.Result{}, err
-		}
-	} else if len(ideIng.Spec.Rules) == 1 && ideIng.Spec.Rules[0].Host != IngressDefaultHost {
-		instance.Status.Editor.Url = fmt.Sprintf("http://%s", ideIng.Spec.Rules[0].Host)
 	}
 
 	// Update status!
@@ -539,6 +515,35 @@ func (r *ReconcileL2c) setConditionField(field []status.Condition, instance *tma
 	}
 
 	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
+}
+
+func (r *ReconcileL2c) updateWasIngressUrl(instance *tmaxv1.L2c) error {
+	return r.updateIngressUrl(instance, wasResourceName(instance), "", &instance.Status.WasUrl)
+}
+
+func (r *ReconcileL2c) updateIdeIngressUrl(instance *tmaxv1.L2c) error {
+	if instance.Status.Editor == nil {
+		instance.Status.Editor = &tmaxv1.EditorStatus{}
+	}
+	return r.updateIngressUrl(instance, ideResourceName(instance), "ide.", &instance.Status.Editor.Url)
+}
+
+func (r *ReconcileL2c) updateIngressUrl(instance *tmaxv1.L2c, ingName, hostPrefix string, statusField *string) error {
+	ing := &networkingv1beta1.Ingress{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: ingName, Namespace: instance.Namespace}, ing); err != nil && !errors.IsNotFound(err) {
+		return err
+	} else if err == nil && len(ing.Status.LoadBalancer.Ingress) != 0 && len(ing.Spec.Rules) == 1 && ing.Spec.Rules[0].Host == IngressDefaultHost {
+		// If Loadbalancer is given to the ingress, but host is not set, set host!
+		ing.Spec.Rules[0].Host = fmt.Sprintf("%s%s.%s.%s.nip.io", hostPrefix, instance.Name, instance.Namespace, ing.Status.LoadBalancer.Ingress[0].IP)
+		if err := r.client.Update(context.TODO(), ing); err != nil {
+			return err
+		}
+	} else if len(ing.Spec.Rules) == 1 && ing.Spec.Rules[0].Host != IngressDefaultHost {
+		// Update ingress url to a status field
+		*statusField = fmt.Sprintf("http://%s", ing.Spec.Rules[0].Host)
+	}
+
+	return nil
 }
 
 // To watch WAS ingress - does not have l2c as an owner
