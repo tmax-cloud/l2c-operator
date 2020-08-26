@@ -51,9 +51,10 @@ type SonarQubeQualityProfileListResult struct {
 
 // +k8s:deepcopy-gen=false
 type SonarQubeQualityProfile struct {
-	Key      string `json:"key"`
-	Name     string `json:"name"`
-	Language string `json:"language"`
+	Key       string `json:"key"`
+	Name      string `json:"name"`
+	Language  string `json:"language"`
+	IsDefault bool   `json:"isDefault"`
 
 	X map[string]interface{} `json:"-"`
 }

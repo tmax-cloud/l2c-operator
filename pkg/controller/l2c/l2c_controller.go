@@ -541,7 +541,6 @@ func (r *ReconcileL2c) ingressMapper(ing handler.MapObject) []reconcile.Request 
 		if k == "l2c" {
 			l2c := &tmaxv1.L2c{}
 			if err := r.client.Get(context.TODO(), types.NamespacedName{Name: v, Namespace: ing.Meta.GetNamespace()}, l2c); err != nil {
-				log.Error(err, "")
 				return []reconcile.Request{}
 			}
 			return []reconcile.Request{{
