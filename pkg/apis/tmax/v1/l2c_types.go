@@ -151,11 +151,9 @@ type EditorStatus struct {
 }
 
 type CodeIssue struct {
-	Type     string `json:"type"`
-	Severity string `json:"severity"`
-	File     string `json:"file"`
-	Line     int32  `json:"line"`
-	Message  string `json:"message"`
+	File    string `json:"file"`
+	Line    int32  `json:"line"`
+	Message string `json:"message"`
 }
 
 type L2cTaskStatus struct {

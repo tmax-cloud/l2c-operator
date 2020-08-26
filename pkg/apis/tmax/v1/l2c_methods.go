@@ -107,11 +107,9 @@ func (s *L2cStatus) SetIssues(issues []SonarIssue) {
 
 	for _, i := range issues {
 		issue := CodeIssue{
-			Type:     i.Type,
-			Severity: i.Severity,
-			File:     strings.TrimPrefix(i.Component, fmt.Sprintf("%s:", i.Project)),
-			Line:     i.Line,
-			Message:  i.Message,
+			File:    strings.TrimPrefix(i.Component, fmt.Sprintf("%s:", i.Project)),
+			Line:    i.Line,
+			Message: i.Message,
 		}
 
 		s.SonarIssues = append(s.SonarIssues, issue)
