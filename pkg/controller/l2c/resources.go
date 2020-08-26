@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
+	"github.com/tmax-cloud/l2c-operator/internal"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
@@ -319,7 +320,7 @@ func labels(l2c *tmaxv1.L2c) map[string]string {
 func builderImage(l2c *tmaxv1.L2c) (string, error) {
 	switch l2c.Spec.Was.To.Type {
 	case "jeus":
-		return "192.168.6.110:5000/s2i-jeus:8", nil // TODO!!
+		return internal.BuilderImageJeus, nil
 	default:
 		return "", fmt.Errorf("%s was type is not supported", l2c.Spec.Was.To.Type)
 	}

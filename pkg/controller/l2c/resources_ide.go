@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/tmax-cloud/l2c-operator/internal"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
@@ -118,7 +119,7 @@ func ideDeployment(l2c *tmaxv1.L2c) (*appsv1.Deployment, error) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:            "web-ide",
-						Image:           "192.168.6.110:5000/tmax/code-server:3.3.1", // TODO!!!!
+						Image:           internal.EditorImage,
 						Args:            []string{""},
 						ImagePullPolicy: corev1.PullAlways,
 						VolumeMounts: []corev1.VolumeMount{{

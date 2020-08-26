@@ -9,6 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/tmax-cloud/l2c-operator/internal"
 )
 
 const (
@@ -17,7 +19,6 @@ const (
 
 // TODO: These resources should be configured using configmap or something else! not in this code!
 func dbPvc(l2c *tmaxv1.L2c) (*corev1.PersistentVolumeClaim, error) {
-	storageClassName := "csi-cephfs-sc" // TODO: Shouldn't be a constant
 	storageQuantity, err := resource.ParseQuantity(l2c.Spec.Db.To.StorageSize)
 	if err != nil {
 		return nil, err
@@ -33,7 +34,7 @@ func dbPvc(l2c *tmaxv1.L2c) (*corev1.PersistentVolumeClaim, error) {
 			Labels:    dbLabels(l2c),
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &storageClassName,
+			StorageClassName: &internal.StorageClassName,
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},

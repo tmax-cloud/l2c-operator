@@ -19,6 +19,10 @@ spec:
           image: 172.22.11.2:30500/l2c-operator:v0.0.1
           command:
           - l2c-operator
+          - --storageClassName=csi-cephfs-sc
+          - --sonarQubeImage=azssi/working:0.0.1
+          - --editorImage=192.168.6.110:5000/tmax/code-server:3.3.1
+          - --builderImageJeus=192.168.6.110:5000/s2i-jeus:8
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE

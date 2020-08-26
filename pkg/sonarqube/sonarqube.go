@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/tmax-cloud/l2c-operator/internal"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 )
 
@@ -21,10 +22,6 @@ const (
 
 	DefaultAnalyzerId = "analyzer"
 	DefaultAnalyzerPw = "analyzer"
-
-	DefaultResourceName = "l2c-managed-sonarqube"
-
-	DefaultImage = "azssi/working:0.0.1" // TODO!!
 
 	DefaultStorageClassName = "csi-cephfs-sc"
 	DefaultStorageSize      = "1Gi"
@@ -76,16 +73,10 @@ func NewSonarQube() (*SonarQube, error) {
 	}
 
 	// Resource name
-	resourceName := os.Getenv("SONAR_RESOURCE_NAME")
-	if resourceName == "" {
-		resourceName = DefaultResourceName
-	}
+	resourceName := "l2c-managed-sonarqube"
 
 	// Image URL
-	imageUrl := os.Getenv("SONAR_IMAGE")
-	if imageUrl == "" {
-		imageUrl = DefaultImage
-	}
+	imageUrl := internal.SonarQubeServerImage
 
 	// Storage settings
 	storageClassName := os.Getenv("SONAR_STORAGE_CLASS_NAME")

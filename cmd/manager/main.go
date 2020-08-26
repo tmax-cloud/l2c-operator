@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
+	"github.com/tmax-cloud/l2c-operator/internal"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"github.com/tmax-cloud/l2c-operator/pkg/controller"
@@ -57,6 +58,13 @@ func main() {
 	// Add flags registered by imported packages (e.g. glog and
 	// controller-runtime)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	// Add configurations
+	pflag.StringVar(&internal.SonarQubeServerImage, "sonarQubeImage", "azssi/working:0.0.1", "image url of sonarqube server")
+	pflag.StringVar(&internal.EditorImage, "editorImage", "192.168.6.110:5000/tmax/code-server:3.3.1", "image url of web ide")
+	pflag.StringVar(&internal.StorageClassName, "storageClassName", "csi-cephfs-sc", "storage class name for PVC to be created")
+
+	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "192.168.6.110:5000/s2i-jeus:8", "Builder image for JEUS WAS")
 
 	pflag.Parse()
 
