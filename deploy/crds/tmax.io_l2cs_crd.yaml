@@ -274,16 +274,10 @@ spec:
                     type: integer
                   message:
                     type: string
-                  severity:
-                    type: string
-                  type:
-                    type: string
                 required:
                 - file
                 - line
                 - message
-                - severity
-                - type
                 type: object
               type: array
             taskStatus:
