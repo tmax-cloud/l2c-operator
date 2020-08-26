@@ -268,6 +268,12 @@ WatchLoop:
 		os.Exit(1)
 	}
 
+	// Make empty qualityGates for all lang
+	if err := s.CreateEmptyQualityProfiles(); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
 	// Register webhook
 	if err := s.RegisterWebhook(); err != nil {
 		log.Error(err, "")

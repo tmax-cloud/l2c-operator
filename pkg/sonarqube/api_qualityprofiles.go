@@ -73,3 +73,66 @@ func (s *SonarQube) SetQualityProfiles(l2c *tmaxv1.L2c, sourceWas string) error 
 
 	return nil
 }
+
+type EmptyProfileData struct {
+	Exist     bool
+	IsDefault bool
+}
+
+func (s *SonarQube) CreateEmptyQualityProfiles() error {
+	langProfiles := map[string]EmptyProfileData{}
+
+	// Get all quality profiles
+	qualityProfileList := &tmaxv1.SonarQubeQualityProfileListResult{}
+	if err := s.reqHttp(http.MethodGet, "/api/qualityprofiles/search", nil, nil, qualityProfileList); err != nil {
+		return err
+	}
+	for _, profile := range qualityProfileList.Profiles {
+		var data EmptyProfileData
+		tmp, exist := langProfiles[profile.Language]
+		if exist {
+			data = tmp
+		} else {
+			data = EmptyProfileData{Exist: false, IsDefault: false}
+		}
+		if profile.Name == "empty" {
+			data.Exist = true
+			data.IsDefault = profile.IsDefault
+		}
+		langProfiles[profile.Language] = data
+	}
+
+	// Create/Set default empty profile
+	for lang, langProfile := range langProfiles {
+		if !langProfile.Exist {
+			if err := s.CreateEmptyQualityProfile("empty", lang); err != nil {
+				return err
+			}
+			log.Info(fmt.Sprintf("Created quality profile %s/%s", lang, "empty"))
+		}
+		if !langProfile.IsDefault {
+			if err := s.DefaultQualityProfile("empty", lang); err != nil {
+				return err
+			}
+			log.Info(fmt.Sprintf("Set quality profile %s/%s as default", lang, "empty"))
+		}
+	}
+
+	return nil
+}
+
+func (s *SonarQube) CreateEmptyQualityProfile(name, lang string) error {
+	data := map[string]string{
+		"name":     name,
+		"language": lang,
+	}
+	return s.reqHttp(http.MethodPost, "/api/qualityprofiles/create", data, nil, nil)
+}
+
+func (s *SonarQube) DefaultQualityProfile(name, lang string) error {
+	data := map[string]string{
+		"qualityProfile": name,
+		"language":       lang,
+	}
+	return s.reqHttp(http.MethodPost, "/api/qualityprofiles/set_default", data, nil, nil)
+}
