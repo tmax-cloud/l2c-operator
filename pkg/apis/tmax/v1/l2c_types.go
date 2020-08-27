@@ -184,6 +184,10 @@ type L2cTaskStatus struct {
 // L2c is the Schema for the l2cs API
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=l2cs,scope=Namespaced
+// +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=".status.phases[?(@.reason=='Running')].type"
+// +kubebuilder:printcolumn:name="IDE URL",type=string,JSONPath=".status.editor.url"
+// +kubebuilder:printcolumn:name="WAS URL",type=string,JSONPath=".status.wasUrl"
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=".metadata.creationTimestamp"
 type L2c struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
