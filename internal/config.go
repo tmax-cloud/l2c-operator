@@ -4,6 +4,8 @@ var (
 	SonarQubeServerImage string
 	EditorImage          string
 	StorageClassName     string
+
+	EncryptKey string
 )
 
 // Builder images

@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/tmax-cloud/l2c-operator/internal"
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 )
 
 const (
@@ -171,11 +172,16 @@ func dbSecretValues(l2c *tmaxv1.L2c) (map[string]string, error) {
 		return nil, err
 	}
 
+	pw, err := utils.DecryptPassword(l2c.Spec.Db.To.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	values := map[string]string{}
 	switch l2c.Spec.Db.To.Type {
 	case "tibero":
 		values["MASTER_USER"] = l2c.Spec.Db.To.User
-		values["MASTER_PASSWORD"] = l2c.Spec.Db.To.Password
+		values["MASTER_PASSWORD"] = pw
 		values["TCS_INSTALL"] = "1"
 		values["TCS_SID"] = l2c.Spec.Db.To.User
 		values["TB_SID"] = l2c.Spec.Db.To.User
