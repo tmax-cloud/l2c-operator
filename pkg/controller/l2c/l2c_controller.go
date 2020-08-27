@@ -113,9 +113,6 @@ type ReconcileL2c struct {
 
 // Reconcile reads that state of the cluster for a L2c object and makes changes based on the state read
 // and what is in the L2c.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling L2c")
@@ -125,17 +122,22 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
 
 	// Finalizer - Set finalizer / handle if exist
 	escape, err := r.handleFinalizer(instance)
+	if err != nil {
+		log.Error(err, "")
+		return reconcile.Result{}, err
+	} else if escape {
+		return reconcile.Result{}, nil
+	}
+
+	// Password handler - encrypt it symmetrically
+	escape, err = r.handlePassword(instance)
 	if err != nil {
 		log.Error(err, "")
 		return reconcile.Result{}, err
@@ -150,97 +152,9 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	/*
 	 * Pre-processing for L2c project
 	 */
-	// Set default Conditions
-	if len(instance.Status.Conditions) == 0 {
-		instance.Status.SetDefaults()
-	}
-
-	// Create SonarQube Project
-	if err := r.sonarQube.CreateProject(instance); err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
+	if err := r.makeReady(instance); err != nil {
+		log.Error(err, "")
 		return reconcile.Result{}, err
-	}
-	// Set QualityProfiles
-	if err := r.sonarQube.SetQualityProfiles(instance, instance.Spec.Was.From.Type); err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot set sonarqube qualityProfiles", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, err
-	}
-
-	// Generate ConfigMap for WAS
-	wasCm, err := wasConfigMap(instance)
-	if err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, err
-	}
-	if err := r.createAndUpdateStatus(wasCm, instance, "error getting/creating configMap"); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Generate ServiceAccount
-	sa := serviceAccount(instance)
-	if err := r.createAndUpdateStatus(sa, instance, "error getting/creating serviceAccount"); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Generate RoleBinding
-	rb := roleBinding(instance)
-	if err := r.createAndUpdateStatus(rb, instance, "error getting/creating roleBinding"); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Generate Pipeline
-	pipeline, err := pipeline(instance)
-	if err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating pipeline", err.Error()); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, err
-	}
-	if err := r.createAndUpdateStatus(pipeline, instance, "error getting/creating pipeline"); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Generate ConfigMap/Secret for DB (only if any db configuration is set)
-	if instance.Spec.Db != nil {
-		dbCm, err := dbConfigMap(instance)
-		if err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating configMap", err.Error()); err != nil {
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, err
-		}
-		if err := r.createAndUpdateStatus(dbCm, instance, "error getting/creating configMap"); err != nil {
-			return reconcile.Result{}, err
-		}
-
-		dbSecret, err := secret(instance)
-		if err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating secret", err.Error()); err != nil {
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, err
-		}
-		if err := r.createAndUpdateStatus(dbSecret, instance, "error getting/creating secret"); err != nil {
-			return reconcile.Result{}, err
-		}
-	}
-
-	// Set Project Ready!
-	instance.Status.PipelineName = pipeline.Name
-	currentReadyState, found := instance.Status.GetCondition(tmaxv1.ConditionKeyProjectReady)
-	if !found {
-		return reconcile.Result{}, fmt.Errorf("%s condition not found", tmaxv1.ConditionKeyProjectReady)
-	}
-	if currentReadyState.Status != corev1.ConditionTrue {
-		if err := r.setCondition(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionTrue, "Ready", "project is ready to run"); err != nil {
-			return reconcile.Result{}, err
-		}
 	}
 
 	/*
@@ -255,7 +169,6 @@ func (r *ReconcileL2c) Reconcile(request reconcile.Request) (reconcile.Result, e
 	/*
 	 * Analyze failure handler
 	 */
-	// If Analyze status is Failed
 	if err = r.handleAnalyzeFailure(instance); err != nil {
 		log.Error(err, "")
 		return reconcile.Result{}, err

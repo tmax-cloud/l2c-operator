@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
 	"github.com/tmax-cloud/l2c-operator/internal"
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 )
 
@@ -119,6 +120,16 @@ func secret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 		return nil, fmt.Errorf("db migration is not configured")
 	}
 
+	sourcePw, err := utils.DecryptPassword(l2c.Spec.Db.From.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	targetPw, err := utils.DecryptPassword(l2c.Spec.Db.To.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      resourceName(l2c),
@@ -127,10 +138,10 @@ func secret(l2c *tmaxv1.L2c) (*corev1.Secret, error) {
 		},
 		StringData: map[string]string{
 			tmaxv1.DbSecretKeySourceUser:     l2c.Spec.Db.From.User,
-			tmaxv1.DbSecretKeySourcePassword: l2c.Spec.Db.From.Password,
+			tmaxv1.DbSecretKeySourcePassword: sourcePw,
 			tmaxv1.DbSecretKeySourceSid:      l2c.Spec.Db.From.Sid,
 			tmaxv1.DbSecretKeyTargetUser:     l2c.Spec.Db.To.User,
-			tmaxv1.DbSecretKeyTargetPassword: l2c.Spec.Db.To.Password,
+			tmaxv1.DbSecretKeyTargetPassword: targetPw,
 			tmaxv1.DbSecretKeyTargetSid:      l2c.Spec.Db.To.User,
 		},
 	}, nil

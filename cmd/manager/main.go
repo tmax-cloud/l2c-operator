@@ -64,6 +64,8 @@ func main() {
 	pflag.StringVar(&internal.EditorImage, "editorImage", "192.168.6.110:5000/tmax/code-server:3.3.1", "image url of web ide")
 	pflag.StringVar(&internal.StorageClassName, "storageClassName", "csi-cephfs-sc", "storage class name for PVC to be created")
 
+	pflag.StringVar(&internal.EncryptKey, "encryptKey", "l2c-operator-salt-12333", "Encryption key for storing password")
+
 	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "192.168.6.110:5000/s2i-jeus:8", "Builder image for JEUS WAS")
 
 	pflag.Parse()

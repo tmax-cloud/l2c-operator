@@ -23,6 +23,7 @@ spec:
           - --sonarQubeImage=azssi/working:0.0.1
           - --editorImage=192.168.6.110:5000/tmax/code-server:3.3.1
           - --builderImageJeus=192.168.6.110:5000/s2i-jeus:8
+          - --encryptKey=l2c-operator-salt-12333
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
