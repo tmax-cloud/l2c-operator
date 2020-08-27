@@ -3,6 +3,19 @@ kind: CustomResourceDefinition
 metadata:
   name: l2cs.tmax.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.phases[?(@.reason=='Running')].type
+    name: Phase
+    type: string
+  - JSONPath: .status.editor.url
+    name: IDE URL
+    type: string
+  - JSONPath: .status.wasUrl
+    name: WAS URL
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: tmax.io
   names:
     kind: L2c

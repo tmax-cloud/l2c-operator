@@ -5,14 +5,14 @@ import (
 )
 
 const (
-	ConditionKeyProjectReady     = status.ConditionType("ProjectReady")
-	ConditionKeyProjectRunning   = status.ConditionType("ProjectRunning")
-	ConditionKeyProjectSucceeded = status.ConditionType("ProjectSucceeded")
+	ConditionKeyProjectReady     = status.ConditionType("Ready")
+	ConditionKeyProjectRunning   = status.ConditionType("Running")
+	ConditionKeyProjectSucceeded = status.ConditionType("Succeeded")
 
-	ConditionKeyPhaseAnalyze   = status.ConditionType("PhaseAnalyze")
-	ConditionKeyPhaseDbMigrate = status.ConditionType("PhaseDBMigrate")
-	ConditionKeyPhaseBuild     = status.ConditionType("PhaseBuild")
-	ConditionKeyPhaseDeploy    = status.ConditionType("PhaseDeploy")
+	ConditionKeyPhaseAnalyze   = status.ConditionType("Analyze")
+	ConditionKeyPhaseDbMigrate = status.ConditionType("DBMigrate")
+	ConditionKeyPhaseBuild     = status.ConditionType("Build")
+	ConditionKeyPhaseDeploy    = status.ConditionType("Deploy")
 )
 
 const (
