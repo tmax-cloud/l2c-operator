@@ -181,14 +181,8 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 	// doMigrateDb
 	doMigrateDb := "FALSE"
 
-	// DB port
-	var dbPortNum int32 = 0
-
 	// DB migration params
 	dbMigrationParams := []tektonv1.Param{{
-		Name:  "DO_MIGRATE_DB",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
-	}, {
 		Name:  "CM_NAME",
 		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
 	}, {
@@ -206,7 +200,7 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 		doMigrateDb = "TRUE"
 
 		var err error
-		dbPortNum, err = dbPort(l2c)
+		dbPortNum, err := dbPort(l2c)
 		if err != nil {
 			return nil, err
 		}
@@ -220,6 +214,9 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 	}
 
 	dbMigrationParams = append(dbMigrationParams, tektonv1.Param{
+		Name:  "DO_MIGRATE_DB",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
+	}, tektonv1.Param{
 		Name:  "SOURCE_TYPE",
 		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourceType},
 	}, tektonv1.Param{
@@ -284,9 +281,9 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarProjectKey)},
 				}},
 			}, {
-				Name:    string(tmaxv1.PipelineTaskNameMigrate),
-				TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
-				Params: dbMigrationParams,
+				Name:     string(tmaxv1.PipelineTaskNameMigrate),
+				TaskRef:  &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
+				Params:   dbMigrationParams,
 				RunAfter: []string{string(tmaxv1.PipelineTaskNameAnalyze)},
 			}, {
 				Name:    string(tmaxv1.PipelineTaskNameBuild),
