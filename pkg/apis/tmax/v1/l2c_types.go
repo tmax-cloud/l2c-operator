@@ -49,6 +49,10 @@ type L2cWasFrom struct {
 
 	// Git information for WAS source code
 	Git L2cGit `json:"git"`
+
+	// Build Tool
+	// +kubebuilder:validation:Enum=maven;gradle
+	BuildTool string `json:"buildTool"`
 }
 
 type L2cWasTo struct {

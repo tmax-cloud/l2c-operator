@@ -242,6 +242,17 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 		return nil, err
 	}
 
+	// Build Tool
+	var analyzeTask string
+	switch l2c.Spec.Was.From.BuildTool {
+	case tmaxv1.WasBuildToolTypeMaven:
+		analyzeTask = tmaxv1.TaskNameAnalyzeMaven
+	case tmaxv1.WasBuildToolTypeGradle:
+		analyzeTask = tmaxv1.TaskNameAnalyzeGradle
+	default:
+		return nil, fmt.Errorf("build tool %s not supported", l2c.Spec.Was.From.BuildTool)
+	}
+
 	return &tektonv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      resourceName(l2c),
@@ -263,7 +274,7 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 			},
 			Tasks: []tektonv1.PipelineTask{{
 				Name:    string(tmaxv1.PipelineTaskNameAnalyze),
-				TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameAnalyzeMaven, Kind: tektonv1.ClusterTaskKind}, // TODO: MAVEN/GRADLE
+				TaskRef: &tektonv1.TaskRef{Name: analyzeTask, Kind: tektonv1.ClusterTaskKind},
 				Resources: &tektonv1.PipelineTaskResources{
 					Inputs: []tektonv1.PipelineTaskInputResource{{
 						Name:     string(tmaxv1.PipelineResourceNameGit),
