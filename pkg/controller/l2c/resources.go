@@ -178,64 +178,6 @@ func roleBinding(l2c *tmaxv1.L2c) *rbacv1.RoleBinding {
 }
 
 func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
-	// doMigrateDb
-	doMigrateDb := "FALSE"
-
-	// DB migration params
-	dbMigrationParams := []tektonv1.Param{{
-		Name:  "CM_NAME",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
-	}, {
-		Name:  "SECRET_NAME",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: resourceName(l2c)},
-	}}
-	dbSourceType := "dummy"
-	dbSourceHost := "dummy"
-	dbSourcePort := "dummy"
-	dbTargetType := "dummy"
-	dbTargetHost := "dummy"
-	dbTargetPort := "dummy"
-
-	if l2c.Spec.Db != nil {
-		doMigrateDb = "TRUE"
-
-		var err error
-		dbPortNum, err := dbPort(l2c)
-		if err != nil {
-			return nil, err
-		}
-
-		dbSourceType = strings.ToUpper(l2c.Spec.Db.From.Type)
-		dbSourceHost = l2c.Spec.Db.From.Host
-		dbSourcePort = fmt.Sprintf("%d", l2c.Spec.Db.From.Port)
-		dbTargetType = strings.ToUpper(l2c.Spec.Db.To.Type)
-		dbTargetHost = dbResourceName(l2c)
-		dbTargetPort = fmt.Sprintf("%d", dbPortNum)
-	}
-
-	dbMigrationParams = append(dbMigrationParams, tektonv1.Param{
-		Name:  "DO_MIGRATE_DB",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
-	}, tektonv1.Param{
-		Name:  "SOURCE_TYPE",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourceType},
-	}, tektonv1.Param{
-		Name:  "SOURCE_HOST",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourceHost},
-	}, tektonv1.Param{
-		Name:  "SOURCE_PORT",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourcePort},
-	}, tektonv1.Param{
-		Name:  "TARGET_TYPE",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetType},
-	}, tektonv1.Param{
-		Name:  "TARGET_HOST",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetHost}, // Host : service for DB deployment
-	}, tektonv1.Param{
-		Name:  "TARGET_PORT",
-		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetPort},
-	})
-
 	// Builder Image
 	builderImg, err := builderImage(l2c)
 	if err != nil {
@@ -252,6 +194,115 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 	default:
 		return nil, fmt.Errorf("build tool %s not supported", l2c.Spec.Was.From.BuildTool)
 	}
+
+	tasks := []tektonv1.PipelineTask{{
+		Name:    string(tmaxv1.PipelineTaskNameAnalyze),
+		TaskRef: &tektonv1.TaskRef{Name: analyzeTask, Kind: tektonv1.ClusterTaskKind},
+		Resources: &tektonv1.PipelineTaskResources{
+			Inputs: []tektonv1.PipelineTaskInputResource{{
+				Name:     string(tmaxv1.PipelineResourceNameGit),
+				Resource: string(tmaxv1.PipelineResourceNameGit),
+			}},
+		},
+		Params: []tektonv1.Param{{
+			Name:  tmaxv1.PipelineParamNameSonarUrl,
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarUrl)},
+		}, {
+			Name:  tmaxv1.PipelineParamNameSonarToken,
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarToken)},
+		}, {
+			Name:  tmaxv1.PipelineParamNameSonarProjectKey,
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarProjectKey)},
+		}},
+	}}
+
+	buildRunAfter := string(tmaxv1.PipelineTaskNameAnalyze)
+	if l2c.Spec.Db != nil {
+		var err error
+		dbPortNum, err := dbPort(l2c)
+		if err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, tektonv1.PipelineTask{
+			Name:    string(tmaxv1.PipelineTaskNameMigrate),
+			TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
+			Params: []tektonv1.Param{{
+				Name:  "CM_NAME",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
+			}, {
+				Name:  "SECRET_NAME",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: resourceName(l2c)},
+			}, {
+				Name:  "DO_MIGRATE_DB",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "TRUE"},
+			}, {
+				Name:  "SOURCE_TYPE",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: strings.ToUpper(l2c.Spec.Db.From.Type)},
+			}, {
+				Name:  "SOURCE_HOST",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Spec.Db.From.Host},
+			}, {
+				Name:  "SOURCE_PORT",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("%d", l2c.Spec.Db.From.Port)},
+			}, {
+				Name:  "TARGET_TYPE",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: strings.ToUpper(l2c.Spec.Db.To.Type)},
+			}, {
+				Name:  "TARGET_HOST",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)}, // Host : service for DB deployment
+			}, {
+				Name:  "TARGET_PORT",
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("%d", dbPortNum)},
+			}},
+			RunAfter: []string{string(tmaxv1.PipelineTaskNameAnalyze)},
+		})
+
+		buildRunAfter = string(tmaxv1.PipelineTaskNameMigrate)
+	}
+
+	tasks = append(tasks, tektonv1.PipelineTask{
+		Name:    string(tmaxv1.PipelineTaskNameBuild),
+		TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameBuild, Kind: tektonv1.ClusterTaskKind},
+		Resources: &tektonv1.PipelineTaskResources{
+			Inputs: []tektonv1.PipelineTaskInputResource{{
+				Name:     "source",
+				Resource: string(tmaxv1.PipelineResourceNameGit),
+			}},
+			Outputs: []tektonv1.PipelineTaskOutputResource{{
+				Name:     "image",
+				Resource: string(tmaxv1.PipelineResourceNameImage),
+			}},
+		},
+		Params: []tektonv1.Param{{
+			Name:  "BUILDER_IMAGE",
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: builderImg},
+		}, {
+			Name:  "REGISTRY_SECRET_NAME",
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Spec.Was.To.Image.RegSecret},
+		}},
+		RunAfter: []string{buildRunAfter},
+	}, tektonv1.PipelineTask{
+		Name:    string(tmaxv1.PipelineTaskNameDeploy),
+		TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameDeploy, Kind: tektonv1.ClusterTaskKind},
+		Resources: &tektonv1.PipelineTaskResources{
+			Inputs: []tektonv1.PipelineTaskInputResource{{
+				Name:     "image",
+				Resource: string(tmaxv1.PipelineResourceNameImage),
+			}},
+		},
+		Params: []tektonv1.Param{{
+			Name:  "app-name",
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Name},
+		}, {
+			Name:  "image-url",
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(tasks.%s.results.image-url)", string(tmaxv1.PipelineTaskNameBuild))},
+		}, {
+			Name:  "deploy-cfg-name",
+			Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: wasResourceName(l2c)},
+		}},
+		RunAfter: []string{string(tmaxv1.PipelineTaskNameBuild)},
+	})
 
 	return &tektonv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
@@ -272,72 +323,7 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 				{Name: tmaxv1.PipelineParamNameSonarToken},
 				{Name: tmaxv1.PipelineParamNameSonarProjectKey},
 			},
-			Tasks: []tektonv1.PipelineTask{{
-				Name:    string(tmaxv1.PipelineTaskNameAnalyze),
-				TaskRef: &tektonv1.TaskRef{Name: analyzeTask, Kind: tektonv1.ClusterTaskKind},
-				Resources: &tektonv1.PipelineTaskResources{
-					Inputs: []tektonv1.PipelineTaskInputResource{{
-						Name:     string(tmaxv1.PipelineResourceNameGit),
-						Resource: string(tmaxv1.PipelineResourceNameGit),
-					}},
-				},
-				Params: []tektonv1.Param{{
-					Name:  tmaxv1.PipelineParamNameSonarUrl,
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarUrl)},
-				}, {
-					Name:  tmaxv1.PipelineParamNameSonarToken,
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarToken)},
-				}, {
-					Name:  tmaxv1.PipelineParamNameSonarProjectKey,
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarProjectKey)},
-				}},
-			}, {
-				Name:     string(tmaxv1.PipelineTaskNameMigrate),
-				TaskRef:  &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
-				Params:   dbMigrationParams,
-				RunAfter: []string{string(tmaxv1.PipelineTaskNameAnalyze)},
-			}, {
-				Name:    string(tmaxv1.PipelineTaskNameBuild),
-				TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameBuild, Kind: tektonv1.ClusterTaskKind},
-				Resources: &tektonv1.PipelineTaskResources{
-					Inputs: []tektonv1.PipelineTaskInputResource{{
-						Name:     "source",
-						Resource: string(tmaxv1.PipelineResourceNameGit),
-					}},
-					Outputs: []tektonv1.PipelineTaskOutputResource{{
-						Name:     "image",
-						Resource: string(tmaxv1.PipelineResourceNameImage),
-					}},
-				},
-				Params: []tektonv1.Param{{
-					Name:  "BUILDER_IMAGE",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: builderImg},
-				}, {
-					Name:  "REGISTRY_SECRET_NAME",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Spec.Was.To.Image.RegSecret},
-				}},
-				RunAfter: []string{string(tmaxv1.PipelineTaskNameMigrate)},
-			}, {
-				Name:    string(tmaxv1.PipelineTaskNameDeploy),
-				TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameDeploy, Kind: tektonv1.ClusterTaskKind},
-				Resources: &tektonv1.PipelineTaskResources{
-					Inputs: []tektonv1.PipelineTaskInputResource{{
-						Name:     "image",
-						Resource: string(tmaxv1.PipelineResourceNameImage),
-					}},
-				},
-				Params: []tektonv1.Param{{
-					Name:  "app-name",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Name},
-				}, {
-					Name:  "image-url",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(tasks.%s.results.image-url)", string(tmaxv1.PipelineTaskNameBuild))},
-				}, {
-					Name:  "deploy-cfg-name",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: wasResourceName(l2c)},
-				}},
-				RunAfter: []string{string(tmaxv1.PipelineTaskNameBuild)},
-			}},
+			Tasks: tasks,
 		},
 	}, nil
 }
