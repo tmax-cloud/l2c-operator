@@ -64,7 +64,7 @@ func main() {
 	pflag.StringVar(&internal.EncryptKey, "encryptKey", "l2c-operator-salt-12333", "Encryption key for storing password")
 
 	pflag.StringVar(&internal.SonarQubeServerImage, "sonarQubeImage", fmt.Sprintf("tmaxcloudck/l2c-sonarqube:%s", version.Version), "image url of sonarqube server")
-	pflag.StringVar(&internal.EditorImage, "editorImage", fmt.Sprintf("tmaxcloudck/l2c-code-server:%s", version.Version), "image url of web ide")
+	pflag.StringVar(&internal.EditorImage, "editorImage", fmt.Sprintf("tmaxcloudck/l2c-vscode:%s", version.Version), "image url of web ide")
 
 	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "192.168.6.110:5000/s2i-jeus:8", "Builder image for JEUS WAS")
 
