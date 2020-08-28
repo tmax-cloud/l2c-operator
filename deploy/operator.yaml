@@ -16,14 +16,14 @@ spec:
       serviceAccountName: l2c-operator
       containers:
         - name: l2c-operator
-          image: tmaxcloudck/l2c-operator:v0.0.1
+          image: 172.22.11.2:30500/l2c-operator:v0.0.1
           command:
           - l2c-operator
           - --storageClassName=csi-cephfs-sc
           - --encryptKey=l2c-operator-salt-12333
           - --sonarQubeImage=tmaxcloudck/l2c-sonarqube:v0.0.1
-          - --editorImage=tmaxcloudck/l2c-code-server:v0.0.1
-          - --builderImageJeus=192.168.6.110:5000/s2i-jeus:8
+          - --editorImage=tmaxcloudck/l2c-vscode:v0.0.1
+          - --builderImageJeus=192.168.6.110:5000/s2i-jeus:8test
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
