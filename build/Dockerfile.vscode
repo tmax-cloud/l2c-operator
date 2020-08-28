@@ -1,0 +1,24 @@
+FROM codercom/code-server:3.3.1
+
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+USER root
+RUN apt update && \
+    apt install -y \
+        default-jdk \
+        maven \
+        wget && \
+    mkdir -p /home/coder/extensions && \
+    mkdir -p /home/coder/.local/share/code-server/User/globalStorage && \
+    wget https://marketplace.visualstudio.com/_apis/public/gallery/publishers/vscjava/vsextensions/vscode-java-pack/0.10.0/vspackage -O- | gunzip -c > /home/coder/extensions/JavaPack.VSIX && \
+    wget https://marketplace.visualstudio.com/_apis/public/gallery/publishers/SonarSource/vsextensions/sonarlint-vscode/1.17.0/vspackage -O- | gunzip -c > /home/coder/extensions/Sonarlint.VSIX && \
+    chown -R coder:coder /home/coder && \
+    apt remove -y wget && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+
+USER coder
+RUN /usr/bin/code-server --install-extension /home/coder/extensions/JavaPack.VSIX && \
+    /usr/bin/code-server --install-extension /home/coder/extensions/Sonarlint.VSIX
+
+CMD ["--cert"]

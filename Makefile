@@ -1,7 +1,7 @@
 SDK	= operator-sdk
 
 REGISTRY      ?= tmaxcloudck
-VERSION       ?= v0.0.1
+VERSION       ?= $(shell cat version/version.go | grep -Po '(?<=")v[0-9]+\.[0-9]+\.[0-9]+(?=")')
 
 PACKAGE_NAME  = github.com/tmax-cloud/l2c-operator
 
@@ -13,6 +13,12 @@ DB_DEPLOYER_IMG   = $(REGISTRY)/$(DB_DEPLOYER_NAME):$(VERSION)
 
 SCAN_WAITER_NAME  = l2c-scan-waiter
 SCAN_WAITER_IMG   = $(REGISTRY)/$(SCAN_WAITER_NAME):$(VERSION)
+
+SONARQUBE_NAME  = l2c-sonarqube
+SONARQUBE_IMG   = $(REGISTRY)/$(SONARQUBE_NAME):$(VERSION)
+
+VSCODE_NAME  = l2c-vscode
+VSCODE_IMG   = $(REGISTRY)/$(VSCODE_NAME):$(VERSION)
 
 BIN = ./build/_output/bin
 
@@ -43,6 +49,7 @@ build-scan-waiter:
 	CGO_ENABLED=0 go build -o $(BIN)/scan-waiter $(PACKAGE_NAME)/cmd/scan-waiter
 	docker build -t $(SCAN_WAITER_IMG) -f build/Dockerfile.scan-waiter .
 
+
 .PHONY: push push-operator push-db-deployer push-scan-waiter
 push: push-operator push-db-deployer push-scan-waiter
 
@@ -54,6 +61,7 @@ push-db-deployer:
 
 push-scan-waiter:
 	docker push $(SCAN_WAITER_IMG)
+
 
 .PHONY: push-latest push-operator-latest
 push-latest: push-operator-latest
@@ -68,6 +76,7 @@ push-db-deployer-latest:
 push-scan-waiter-latest:
 	docker tag $(SCAN_WAITER_IMG) $(REGISTRY)/$(SCAN_WAITER_NAME):latest
 	docker push $(REGISTRY)/$(SCAN_WAITER_NAME):latest
+
 
 .PHONY: test test-gen save-sha-gen compare-sha-gen test-verify save-sha-mod compare-sha-mod verify test-unit test-lint
 test: test-gen test-verify test-unit test-lint
@@ -104,6 +113,17 @@ test-unit:
 
 test-lint:
 	golangci-lint run ./... -v -E gofmt --timeout 1h0m0s
+
+
+.PHONY: pre sonarqube vscode
+pre: sonarqube vscode
+sonarqube:
+	docker build -t $(SONARQUBE_IMG) -f build/Dockerfile.sonarqube .
+	docker push $(SONARQUBE_IMG)
+
+vscode:
+	docker build -t $(VSCODE_IMG) -f build/Dockerfile.vscode .
+	docker push $(VSCODE_IMG)
 
 
 .PHONY: run-local deploy
