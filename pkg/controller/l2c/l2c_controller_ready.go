@@ -20,7 +20,7 @@ func (r *ReconcileL2c) makeReady(instance *tmaxv1.L2c) error {
 		return err
 	}
 	// Set QualityProfiles
-	if err := r.sonarQube.SetQualityProfiles(instance, instance.Spec.Was.From.Type); err != nil {
+	if err := r.sonarQube.SetQualityProfiles(instance); err != nil {
 		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot set sonarqube qualityProfiles", err.Error()); err != nil {
 			return err
 		}
