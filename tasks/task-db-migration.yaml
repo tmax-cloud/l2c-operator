@@ -25,7 +25,7 @@ spec:
       description: Target DBMS port
   steps:
     - name: deploy-db
-      image: 172.22.11.2:30500/l2c-db-deployer:v0.0.1
+      image: tmaxcloudck/l2c-db-deployer:v0.0.1
       imagePullPolicy: Always
       env:
       - name: DO_MIGRATE_DB
@@ -35,7 +35,7 @@ spec:
       - name: WAIT_UNTIL_RUNNING
         value: "true"
     - name: migrate-db
-      image: 172.22.11.2:30500/tup-tibero:latest
+      image: 192.168.6.110:5000/tup-tibero:latest
       imagePullPolicy: Always
       script: |
         if [ "$(params.DO_MIGRATE_DB)" != "TRUE" ]; then
