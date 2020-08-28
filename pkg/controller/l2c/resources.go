@@ -179,20 +179,62 @@ func roleBinding(l2c *tmaxv1.L2c) *rbacv1.RoleBinding {
 
 func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 	// doMigrateDb
-	doMigrateDb := "TRUE"
-	if l2c.Spec.Db == nil {
-		doMigrateDb = "FALSE"
-	}
+	doMigrateDb := "FALSE"
 
-	// DB port
-	var dbPortNum int32 = 0
+	// DB migration params
+	dbMigrationParams := []tektonv1.Param{{
+		Name:  "CM_NAME",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
+	}, {
+		Name:  "SECRET_NAME",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: resourceName(l2c)},
+	}}
+	dbSourceType := "dummy"
+	dbSourceHost := "dummy"
+	dbSourcePort := "dummy"
+	dbTargetType := "dummy"
+	dbTargetHost := "dummy"
+	dbTargetPort := "dummy"
+
 	if l2c.Spec.Db != nil {
+		doMigrateDb = "TRUE"
+
 		var err error
-		dbPortNum, err = dbPort(l2c)
+		dbPortNum, err := dbPort(l2c)
 		if err != nil {
 			return nil, err
 		}
+
+		dbSourceType = strings.ToUpper(l2c.Spec.Db.From.Type)
+		dbSourceHost = l2c.Spec.Db.From.Host
+		dbSourcePort = fmt.Sprintf("%d", l2c.Spec.Db.From.Port)
+		dbTargetType = strings.ToUpper(l2c.Spec.Db.To.Type)
+		dbTargetHost = dbResourceName(l2c)
+		dbTargetPort = fmt.Sprintf("%d", dbPortNum)
 	}
+
+	dbMigrationParams = append(dbMigrationParams, tektonv1.Param{
+		Name:  "DO_MIGRATE_DB",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
+	}, tektonv1.Param{
+		Name:  "SOURCE_TYPE",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourceType},
+	}, tektonv1.Param{
+		Name:  "SOURCE_HOST",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourceHost},
+	}, tektonv1.Param{
+		Name:  "SOURCE_PORT",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbSourcePort},
+	}, tektonv1.Param{
+		Name:  "TARGET_TYPE",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetType},
+	}, tektonv1.Param{
+		Name:  "TARGET_HOST",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetHost}, // Host : service for DB deployment
+	}, tektonv1.Param{
+		Name:  "TARGET_PORT",
+		Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbTargetPort},
+	})
 
 	// Builder Image
 	builderImg, err := builderImage(l2c)
@@ -239,36 +281,9 @@ func pipeline(l2c *tmaxv1.L2c) (*tektonv1.Pipeline, error) {
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.PipelineParamNameSonarProjectKey)},
 				}},
 			}, {
-				Name:    string(tmaxv1.PipelineTaskNameMigrate),
-				TaskRef: &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
-				Params: []tektonv1.Param{{
-					Name:  "DO_MIGRATE_DB",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: doMigrateDb},
-				}, {
-					Name:  "CM_NAME",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)},
-				}, {
-					Name:  "SECRET_NAME",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: resourceName(l2c)},
-				}, {
-					Name:  "SOURCE_TYPE",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: strings.ToUpper(l2c.Spec.Db.From.Type)},
-				}, {
-					Name:  "SOURCE_HOST",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.Spec.Db.From.Host},
-				}, {
-					Name:  "SOURCE_PORT",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("%d", l2c.Spec.Db.From.Port)},
-				}, {
-					Name:  "TARGET_TYPE",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: strings.ToUpper(l2c.Spec.Db.To.Type)},
-				}, {
-					Name:  "TARGET_HOST",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: dbResourceName(l2c)}, // Host : service for DB deployment
-				}, {
-					Name:  "TARGET_PORT",
-					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("%d", dbPortNum)},
-				}},
+				Name:     string(tmaxv1.PipelineTaskNameMigrate),
+				TaskRef:  &tektonv1.TaskRef{Name: tmaxv1.TaskNameDbMigration, Kind: tektonv1.ClusterTaskKind},
+				Params:   dbMigrationParams,
 				RunAfter: []string{string(tmaxv1.PipelineTaskNameAnalyze)},
 			}, {
 				Name:    string(tmaxv1.PipelineTaskNameBuild),
