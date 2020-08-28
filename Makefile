@@ -63,8 +63,8 @@ push-scan-waiter:
 	docker push $(SCAN_WAITER_IMG)
 
 
-.PHONY: push-latest push-operator-latest
-push-latest: push-operator-latest
+.PHONY: push-latest push-operator-latest push-db-deployer-latest push-scan-waiter-latest
+push-latest: push-operator-latest push-db-deployer-latest push-scan-waiter-latest
 push-operator-latest:
 	docker tag $(OPERATOR_IMG) $(REGISTRY)/$(OPERATOR_NAME):latest
 	docker push $(REGISTRY)/$(OPERATOR_NAME):latest
