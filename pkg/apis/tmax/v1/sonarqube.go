@@ -131,10 +131,34 @@ type SonarProfileResult struct {
 }
 
 // +k8s:deepcopy-gen=false
+type SonarProfileCreateResult struct {
+	Profile SonarProfile `json:"profile"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
 type SonarProfile struct {
 	Key      string `json:"key"`
 	Name     string `json:"name"`
 	Language string `json:"language"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// Rules
+// +k8s:deepcopy-gen=false
+type SonarRuleResult struct {
+	Rules []SonarRule `json:"rules"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+// +k8s:deepcopy-gen=false
+type SonarRule struct {
+	Key      string `json:"key"`
+	Name     string `json:"name"`
+	Language string `json:"lang"`
 
 	X map[string]interface{} `json:"-"`
 }

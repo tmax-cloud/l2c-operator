@@ -27,8 +27,9 @@ func (s *SonarQube) deployment() *appsv1.Deployment {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Image: s.Image,
-							Name:  "sonarqube",
+							Image:           s.Image,
+							ImagePullPolicy: corev1.PullAlways,
+							Name:            "sonarqube",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "web",

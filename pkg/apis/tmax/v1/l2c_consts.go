@@ -5,6 +5,16 @@ import (
 )
 
 const (
+	WasTypeWeblogic = "weblogic"
+	WasTypeJeus     = "jeus"
+)
+
+const (
+	DbTypeOracle = "oracle"
+	DbTypeTibero = "tibero"
+)
+
+const (
 	ConditionKeyProjectReady     = status.ConditionType("Ready")
 	ConditionKeyProjectRunning   = status.ConditionType("Running")
 	ConditionKeyProjectSucceeded = status.ConditionType("Succeeded")

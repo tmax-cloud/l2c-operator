@@ -159,7 +159,7 @@ func dbServiceLabels(l2c *tmaxv1.L2c) map[string]string {
 
 func dbPort(l2c *tmaxv1.L2c) (int32, error) {
 	switch l2c.Spec.Db.To.Type {
-	case "tibero":
+	case tmaxv1.DbTypeTibero:
 		return 8629, nil
 	default:
 		return 0, fmt.Errorf("spec.db.to.type(%s) not supported", l2c.Spec.Db.To.Type)
@@ -179,7 +179,7 @@ func dbSecretValues(l2c *tmaxv1.L2c) (map[string]string, error) {
 
 	values := map[string]string{}
 	switch l2c.Spec.Db.To.Type {
-	case "tibero":
+	case tmaxv1.DbTypeTibero:
 		values["MASTER_USER"] = l2c.Spec.Db.To.User
 		values["MASTER_PASSWORD"] = pw
 		values["TCS_INSTALL"] = "1"
@@ -209,7 +209,7 @@ func dbContainer(l2c *tmaxv1.L2c) (*corev1.Container, error) {
 	}
 
 	switch l2c.Spec.Db.To.Type {
-	case "tibero":
+	case tmaxv1.DbTypeTibero:
 		cont.Image = "192.168.6.110:5000/cloud_tcs_tibero_standalone:200309"
 
 		// Set env.s
