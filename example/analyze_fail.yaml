@@ -6,6 +6,7 @@ spec:
   was:
     from:
       type: weblogic
+      buildTool: maven
       git:
         url: https://github.com/taejune/my-weblogic-playground.git
     to:

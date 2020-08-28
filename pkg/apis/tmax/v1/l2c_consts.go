@@ -7,9 +7,10 @@ import (
 const (
 	WasTypeWeblogic = "weblogic"
 	WasTypeJeus     = "jeus"
-)
 
-const (
+	WasBuildToolTypeMaven  = "maven"
+	WasBuildToolTypeGradle = "gradle"
+
 	DbTypeOracle = "oracle"
 	DbTypeTibero = "tibero"
 )
