@@ -16,7 +16,7 @@ spec:
       serviceAccountName: l2c-operator
       containers:
         - name: l2c-operator
-          image: 172.22.11.2:30500/l2c-operator:v0.0.1
+          image: tmaxcloudck/l2c-operator:v0.0.1
           command:
           - l2c-operator
           - --storageClassName=csi-cephfs-sc
