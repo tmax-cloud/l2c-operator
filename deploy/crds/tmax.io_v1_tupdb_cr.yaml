@@ -1,0 +1,7 @@
+apiVersion: tmax.io/v1
+kind: TupDB
+metadata:
+  name: example-tupdb
+spec:
+  # Add fields here
+  size: 3
