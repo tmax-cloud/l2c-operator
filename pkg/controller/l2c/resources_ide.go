@@ -11,7 +11,6 @@ import (
 	"github.com/tmax-cloud/l2c-operator/internal"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
-	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 	IdeVolumeConfig = "config"
 )
 
-func ideSecret(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *corev1.Secret {
+func ideSecret(l2c *tmaxv1.L2c) *corev1.Secret {
 	password := utils.RandString(30)
 
 	return &corev1.Secret{
@@ -32,8 +31,8 @@ func ideSecret(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *corev1.Secret {
 			"settings.json": fmt.Sprintf(`{
         "sonarlint.connectedMode.connections.sonarqube": [
           {
-            "serverUrl": "%s/",
-            "token": "%s"
+            "serverUrl": "dummyUrl",
+            "token": "dummyToken"
           }
         ],
         "sonarlint.connectedMode.project": {
@@ -43,7 +42,7 @@ func ideSecret(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *corev1.Secret {
         "sonarlint.ls.javaHome": "/usr/lib/jvm/java-11-openjdk-amd64",
         "java.home": "/usr/lib/jvm/java-11-openjdk-amd64"
       }
-`, sonar.URL, sonar.AnalyzerToken, l2c.GetSonarProjectName()),
+`, l2c.GetSonarProjectName()),
 			"config.yaml": fmt.Sprintf(`bind-addr: 0.0.0.0:%d
 auth: password
 password: %s

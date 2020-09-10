@@ -31,7 +31,6 @@ import (
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"github.com/tmax-cloud/l2c-operator/pkg/controller"
-	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 	"github.com/tmax-cloud/l2c-operator/version"
 )
 
@@ -125,25 +124,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Start SonarQube
-	sonar, err := sonarqube.NewSonarQube()
-	if err != nil {
-		log.Error(err, "")
-		os.Exit(1)
-	}
-	go sonar.Start()
-
-	log.Info("Waiting for SonarQube to be ready")
-	if <-sonar.Ready {
-		log.Info("SonarQube is ready!")
-	}
-
-	// Start SonarQube Webhook/API-proxy server
-	sonarServer := sonarqube.NewServer(mgr.GetClient(), sonar)
-	go sonarServer.Start()
-
 	// Start extension API server for l2c/run
-	extServer := apiserver.New(sonar)
+	extServer := apiserver.New()
 	go extServer.Start()
 
 	log.Info("Registering Components.")
@@ -159,7 +141,7 @@ func main() {
 	}
 
 	// Setup all Controllers
-	if err := controller.AddToManager(mgr, sonar); err != nil {
+	if err := controller.AddToManager(mgr); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

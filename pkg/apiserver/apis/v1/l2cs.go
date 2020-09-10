@@ -99,7 +99,7 @@ func runHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Now, we can create PR
-	pr := pipelineRun(l2c, sonar)
+	pr := pipelineRun(l2c)
 	s := runtime.NewScheme()
 	if err := apis.AddToScheme(s); err != nil {
 		log.Error(err, "")

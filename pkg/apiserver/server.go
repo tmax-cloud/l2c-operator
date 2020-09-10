@@ -18,7 +18,6 @@ import (
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
 	"github.com/tmax-cloud/l2c-operator/pkg/apiserver/apis"
-	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
 const (
@@ -32,7 +31,7 @@ type Server struct {
 	Client  client.Client
 }
 
-func New(sonar *sonarqube.SonarQube) *Server {
+func New() *Server {
 	var err error
 
 	server := &Server{}
@@ -40,7 +39,7 @@ func New(sonar *sonarqube.SonarQube) *Server {
 	server.Wrapper.Router = mux.NewRouter()
 	server.Wrapper.Router.HandleFunc("/", server.rootHandler)
 
-	if err := apis.AddApis(server.Wrapper, sonar); err != nil {
+	if err := apis.AddApis(server.Wrapper); err != nil {
 		log.Error(err, "cannot add apis")
 		os.Exit(1)
 	}

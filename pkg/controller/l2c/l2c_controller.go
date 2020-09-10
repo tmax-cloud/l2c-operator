@@ -21,7 +21,6 @@ import (
 
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
-	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
 const (
@@ -32,13 +31,13 @@ var log = logf.Log.WithName("controller_l2c")
 
 // Add creates a new L2c Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, sonar *sonarqube.SonarQube) error {
-	return add(mgr, newReconciler(mgr, sonar))
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, sonar *sonarqube.SonarQube) reconcile.Reconciler {
-	return &ReconcileL2c{client: mgr.GetClient(), scheme: mgr.GetScheme(), sonarQube: sonar}
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &ReconcileL2c{client: mgr.GetClient(), scheme: mgr.GetScheme()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -107,8 +106,6 @@ type ReconcileL2c struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
-
-	sonarQube *sonarqube.SonarQube
 }
 
 // Reconcile reads that state of the cluster for a L2c object and makes changes based on the state read
