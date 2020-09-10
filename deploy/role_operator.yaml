@@ -97,6 +97,7 @@ rules:
   resources:
   - '*'
   - tupdbs
+  - tupwas
   verbs:
   - create
   - delete
