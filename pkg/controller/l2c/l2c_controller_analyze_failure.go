@@ -13,17 +13,9 @@ import (
 func (r *ReconcileL2c) handleAnalyzeFailure(instance *tmaxv1.L2c) error {
 	analyzeStatus, asFound := instance.Status.GetPhase(tmaxv1.ConditionKeyPhaseAnalyze)
 	if asFound && analyzeStatus.Status == corev1.ConditionFalse && analyzeStatus.Reason == tmaxv1.ReasonPhaseFailed {
-		// Set status.sonarIssues
-		issues, err := r.sonarQube.GetIssues(instance.GetSonarProjectName())
-		if err != nil {
-			return err
-		}
-
-		instance.Status.SetIssues(issues)
-
 		// Generate VSCode - Secret/Service/Ingress/Deployment
 		// Generate Secret
-		ideSecret := ideSecret(instance, r.sonarQube)
+		ideSecret := ideSecret(instance)
 		if err := utils.CheckAndCreateObject(ideSecret, instance, r.client, r.scheme, false); err != nil {
 			return err
 		}

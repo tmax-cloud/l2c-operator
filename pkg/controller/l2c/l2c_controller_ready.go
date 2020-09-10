@@ -12,21 +12,6 @@ func (r *ReconcileL2c) makeReady(instance *tmaxv1.L2c) error {
 		instance.Status.SetDefaults()
 	}
 
-	// Create SonarQube Project
-	if err := r.sonarQube.CreateProject(instance); err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot create sonarqube project", err.Error()); err != nil {
-			return err
-		}
-		return err
-	}
-	// Set QualityProfiles
-	if err := r.sonarQube.SetQualityProfiles(instance); err != nil {
-		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, "cannot set sonarqube qualityProfiles", err.Error()); err != nil {
-			return err
-		}
-		return err
-	}
-
 	// Generate ConfigMap for WAS
 	wasCm, err := wasConfigMap(instance)
 	if err != nil {

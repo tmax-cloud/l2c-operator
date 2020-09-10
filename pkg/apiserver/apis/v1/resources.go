@@ -7,10 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
-	"github.com/tmax-cloud/l2c-operator/pkg/sonarqube"
 )
 
-func pipelineRun(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *tektonv1.PipelineRun {
+func pipelineRun(l2c *tmaxv1.L2c) *tektonv1.PipelineRun {
 	gitParam := []v1alpha1.ResourceParam{{
 		Name:  "url",
 		Value: l2c.Spec.Was.From.Git.Url,
@@ -48,10 +47,10 @@ func pipelineRun(l2c *tmaxv1.L2c, sonar *sonarqube.SonarQube) *tektonv1.Pipeline
 			}},
 			Params: []tektonv1.Param{{
 				Name:  tmaxv1.PipelineParamNameSonarUrl,
-				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: sonar.URL},
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "dummyUrl"},
 			}, {
 				Name:  tmaxv1.PipelineParamNameSonarToken,
-				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: sonar.AnalyzerToken},
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "dummyToken"},
 			}, {
 				Name:  tmaxv1.PipelineParamNameSonarProjectKey,
 				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: l2c.GetSonarProjectName()},

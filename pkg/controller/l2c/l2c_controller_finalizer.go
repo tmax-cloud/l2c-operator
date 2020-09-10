@@ -15,12 +15,6 @@ const (
 func (r *ReconcileL2c) handleFinalizer(instance *tmaxv1.L2c) (bool, error) {
 	// If queued to be deleted, clean up SonarQube project
 	if instance.GetDeletionTimestamp() != nil {
-		if err := r.sonarQube.DeleteProject(instance); err != nil {
-			return false, err
-		}
-		if err := r.sonarQube.DeleteQualityProfiles(instance); err != nil {
-			return false, err
-		}
 		controllerutil.RemoveFinalizer(instance, Finalizer)
 		if err := r.client.Update(context.TODO(), instance); err != nil {
 			log.Error(err, "cannot remove finalizer")
