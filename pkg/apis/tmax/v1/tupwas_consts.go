@@ -24,9 +24,9 @@ const (
 )
 
 // TaskName* : Actual name of Task object
-const(
-	TaskNameGitClone      = "l2c-git-clone"
-	TaskNameAnalyzeWas    = "l2c-tup-jeus"
+const (
+	TaskNameGitClone   = "l2c-git-clone"
+	TaskNameAnalyzeWas = "l2c-tup-jeus"
 )
 
 // PipelineTaskName* : Task name written in Pipeline.spec.tasks
