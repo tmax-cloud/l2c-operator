@@ -30,6 +30,54 @@ spec:
           type: object
         spec:
           description: TupDBSpec defines the desired state of TupDB
+          properties:
+            from:
+              description: DB Source configuration
+              properties:
+                host:
+                  description: Current DB host
+                  pattern: (([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
+                  type: string
+                password:
+                  description: Current DB password
+                  type: string
+                port:
+                  description: Current DB port
+                  format: int32
+                  type: integer
+                sid:
+                  description: Current DB SID
+                  type: string
+                type:
+                  description: Current DB Type
+                  enum:
+                  - oracle
+                  type: string
+                user:
+                  description: Current DB user
+                  type: string
+              type: object
+            to:
+              description: DB destination configuration
+              properties:
+                password:
+                  description: Password for target DB
+                  type: string
+                storageSize:
+                  description: Storage size of target DB
+                  type: string
+                type:
+                  description: Target DB type, to be migrated
+                  enum:
+                  - tibero
+                  type: string
+                user:
+                  description: User for target DB
+                  type: string
+              type: object
+          required:
+          - from
+          - to
           type: object
         status:
           description: TupDBStatus defines the observed state of TupDB
