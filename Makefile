@@ -84,13 +84,16 @@ test: test-gen test-verify test-unit test-lint
 test-gen: save-sha-gen gen compare-sha-gen
 
 save-sha-gen:
-	$(eval CRDSHA=$(shell sha512sum deploy/crds/tmax.io_l2cs_crd.yaml))
+	$(eval CRDSHA1=$(shell sha512sum deploy/crds/tmax.io_tupwas_crd.yaml))
+	$(eval CRDSHA2=$(shell sha512sum deploy/crds/tmax.io_tupdbs_crd.yaml))
 	$(eval GENSHA=$(shell sha512sum pkg/apis/tmax/v1/zz_generated.deepcopy.go))
 
 compare-sha-gen:
-	$(eval CRDSHA_AFTER=$(shell sha512sum deploy/crds/tmax.io_l2cs_crd.yaml))
+	$(eval CRDSHA1_AFTER=$(shell sha512sum deploy/crds/tmax.io_tupwas_crd.yaml))
+	$(eval CRDSHA2_AFTER=$(shell sha512sum deploy/crds/tmax.io_tupdbs_crd.yaml))
 	$(eval GENSHA_AFTER=$(shell sha512sum pkg/apis/tmax/v1/zz_generated.deepcopy.go))
-	@if [ "${CRDSHA_AFTER}" = "${CRDSHA}" ]; then echo "deploy/crds/tmax.io_l2cs_crd.yaml is not changed"; else echo "deploy/crds/tmax.io_l2cs_crd.yaml file is changed"; exit 1; fi
+	@if [ "${CRDSHA1_AFTER}" = "${CRDSHA1}" ]; then echo "deploy/crds/tmax.io_tupwas_crd.yaml is not changed"; else echo "deploy/crds/tmax.io_tupwas_crd.yaml file is changed"; exit 1; fi
+	@if [ "${CRDSHA2_AFTER}" = "${CRDSHA2}" ]; then echo "deploy/crds/tmax.io_tupdbs_crd.yaml is not changed"; else echo "deploy/crds/tmax.io_tupdbs_crd.yaml file is changed"; exit 1; fi
 	@if [ "${GENSHA_AFTER}" = "${GENSHA}" ]; then echo "zz_generated.deepcopy.go is not changed"; else echo "zz_generated.deepcopy.go file is changed"; exit 1; fi
 
 test-verify: save-sha-mod verify compare-sha-mod
