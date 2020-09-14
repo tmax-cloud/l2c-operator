@@ -43,7 +43,7 @@ func (s *TupWASStatus) SetDefaults() {
 	s.SetDefaultConditions()
 }
 
-var tupWasConditions = []status.ConditionType{ConditionKeyProjectReady, ConditionKeyProjectAnalyzing, ConditionKeyProjectRunning, ConditionKeyProjectSucceeded}
+var tupWasConditions = []status.ConditionType{WasConditionKeyProjectReady, WasConditionKeyProjectAnalyzing, WasConditionKeyProjectRunning, WasConditionKeyProjectSucceeded}
 
 func (s *TupWASStatus) SetDefaultConditions() {
 	s.Conditions = nil
