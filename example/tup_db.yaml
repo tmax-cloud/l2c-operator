@@ -1,0 +1,18 @@
+apiVersion: tmax.io/v1
+kind: TupDB
+metadata:
+    name: tup-db-example
+    namespace: db-test
+spec:
+    from:
+        type: oracle
+        host: 192.168.6.129
+        port: 49161
+        user: system
+        password: oracle
+        sid: XE
+    to:
+        type: tibero
+        storageSize: 1Gi
+        user: TMAX 
+        password: TMAX

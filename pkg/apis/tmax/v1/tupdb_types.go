@@ -9,9 +9,50 @@ import (
 
 // TupDBSpec defines the desired state of TupDB
 type TupDBSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// DataBase Information
+
+	// DB Source configuration
+	From TupDBFrom `json:"from"`
+
+	// DB destination configuration
+	To TupDBTo `json:"to"`
+}
+
+type TupDBFrom struct {
+	// Current DB Type
+	// +kubebuilder:validation:Enum=oracle
+	Type string `json:"type,omitempty"`
+
+	// Current DB host
+	// +kubebuilder:validation:Pattern=(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
+	Host string `json:"host,omitempty"`
+
+	// Current DB port
+	Port int32 `json:"port,omitempty"`
+
+	// Current DB user
+	User string `json:"user,omitempty"`
+
+	// Current DB password
+	Password string `json:"password,omitempty"`
+
+	// Current DB SID
+	Sid string `json:"sid,omitempty"`
+}
+
+type TupDBTo struct {
+	// Target DB type, to be migrated
+	// +kubebuilder:validation:Enum=tibero
+	Type string `json:"type,omitempty"`
+
+	// Storage size of target DB
+	StorageSize string `json:"storageSize,omitempty"`
+
+	// User for target DB
+	User string `json:"user,omitempty"`
+
+	// Password for target DB
+	Password string `json:"password,omitempty"`
 }
 
 // TupDBStatus defines the observed state of TupDB
