@@ -29,7 +29,7 @@ import (
 
 	"github.com/tmax-cloud/l2c-operator/internal"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
-	"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
+	//"github.com/tmax-cloud/l2c-operator/pkg/apiserver"
 	"github.com/tmax-cloud/l2c-operator/pkg/controller"
 	"github.com/tmax-cloud/l2c-operator/version"
 )
@@ -125,8 +125,8 @@ func main() {
 	}
 
 	// Start extension API server for l2c/run
-	extServer := apiserver.New()
-	go extServer.Start()
+	//extServer := apiserver.New()
+	//go extServer.Start()
 
 	log.Info("Registering Components.")
 

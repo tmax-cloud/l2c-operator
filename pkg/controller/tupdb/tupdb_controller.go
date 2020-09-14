@@ -2,16 +2,15 @@ package tupdb
 
 import (
 	"context"
+	"github.com/operator-framework/operator-sdk/pkg/status"
+	"github.com/tmax-cloud/l2c-operator/internal/utils"
 
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -99,55 +98,102 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	// [TODO] TupDB Analyzer
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
+	// [TODO] Hanging
 
-	// Set TupDB instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
-
-		// Pod created successfully - don't requeue
+	// [TODO] deploy TiberoDB
+	if err = r.makeTargetDBReady(instance); err != nil {
 		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
 	return reconcile.Result{}, nil
 }
 
-// newPodForCR returns a busybox pod with the same name/namespace as the cr
-func newPodForCR(cr *tmaxv1.TupDB) *corev1.Pod {
-	labels := map[string]string{
-		"app": cr.Name,
+func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
+	// [TODO] Refactoring
+	logger := utils.NewTupLogger(tmaxv1.TupDB{}, instance.Namespace, instance.Name)
+	pvc, err := dbPvc(instance)
+	if err != nil {
+		return err
 	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cr.Name + "-pod",
-			Namespace: cr.Namespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name:    "busybox",
-					Image:   "busybox",
-					Command: []string{"sleep", "3600"},
-				},
-			},
-		},
+	if err = r.createAndUpdateStatus(pvc, instance, "error create PVC"); err != nil {
+		return err
 	}
+	logger.Info("PVC Created")
+
+	service, err := dbService(instance)
+	if err != nil {
+		return err
+	}
+	if err = r.createAndUpdateStatus(service, instance, "error create Service"); err != nil {
+		return err
+	}
+	logger.Info("Service Created")
+
+	secret, err := dbSecret(instance)
+	if err != nil {
+		logger.Error(err, "Secret err")
+		return err
+	}
+	if err = r.createAndUpdateStatus(secret, instance, "error create Secret"); err != nil {
+		return err
+	}
+	logger.Info("Secret Created")
+
+	deployment, err := dbDeploy(instance)
+	if err != nil {
+		return err
+	}
+	if err = r.createAndUpdateStatus(deployment, instance, "error create Deployment"); err != nil {
+		return err
+	}
+	logger.Info("Deployment Created")
+
+	return nil
 }
+
+func (r *ReconcileTupDB) createAndUpdateStatus(obj interface{}, instance *tmaxv1.TupDB, msg string) error {
+	if err := utils.CheckAndCreateObject(obj, instance, r.client, r.scheme, false); err != nil {
+		if err := r.updateErrorStatus(instance, tmaxv1.ConditionKeyProjectReady, corev1.ConditionFalse, msg, err.Error()); err != nil {
+			return err
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *ReconcileTupDB) updateErrorStatus(instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+	//if err := r.setCondition(instance, key, stat, reason, message); err != nil {
+	//	return err
+	//}
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		return err
+	}
+	return nil
+}
+
+//func (r *ReconcileTupDB) setCondition(instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+//	arr, err := r.setConditionField(instance.Status.Conditions, instance, key, stat, reason, message)
+//	if err != nil {
+//		return err
+//	}
+//
+//	instance.Status.Conditions = arr
+//
+//	return nil
+//}
+//
+//func (r *ReconcileTupDB) setConditionField(field []status.Condition, instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) ([]status.Condition, error) {
+//	curCond, found := instance.Status.GetConditionField(field, key)
+//	if !found {
+//		err := fmt.Errorf("cannot find conditions %s", string(key))
+//		log.Error(err, "")
+//		return nil, err
+//	}
+//	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
+//		return field, nil
+//	}
+//
+//	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
+//}
