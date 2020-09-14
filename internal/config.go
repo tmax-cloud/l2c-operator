@@ -1,11 +1,12 @@
 package internal
 
 var (
-	SonarQubeServerImage string
-	EditorImage          string
-	StorageClassName     string
+	EditorImage      string
+	StorageClassName string
 
 	EncryptKey string
+
+	WasProjectStorageSize string
 )
 
 // Builder images

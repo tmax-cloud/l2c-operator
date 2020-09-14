@@ -18,6 +18,7 @@ import (
 	"github.com/spf13/pflag"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	v1 "k8s.io/api/core/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	"k8s.io/client-go/rest"
@@ -62,10 +63,11 @@ func main() {
 	pflag.StringVar(&internal.StorageClassName, "storageClassName", "csi-cephfs-sc", "storage class name for PVC to be created")
 	pflag.StringVar(&internal.EncryptKey, "encryptKey", "l2c-operator-salt-12333", "Encryption key for storing password")
 
-	pflag.StringVar(&internal.SonarQubeServerImage, "sonarQubeImage", fmt.Sprintf("tmaxcloudck/l2c-sonarqube:%s", version.Version), "image url of sonarqube server")
 	pflag.StringVar(&internal.EditorImage, "editorImage", fmt.Sprintf("tmaxcloudck/l2c-vscode:%s", version.Version), "image url of web ide")
 
 	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "192.168.6.110:5000/s2i-jeus:8", "Builder image for JEUS WAS")
+
+	pflag.StringVar(&internal.WasProjectStorageSize, "wasProjectStorageSize", "1Gi", "Storage size for was project size (including git project/analyze result)")
 
 	pflag.Parse()
 
@@ -132,6 +134,10 @@ func main() {
 
 	// Setup Scheme for all resources
 	if err := apis.AddToScheme(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+	if err := networkingv1beta1.AddToScheme(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

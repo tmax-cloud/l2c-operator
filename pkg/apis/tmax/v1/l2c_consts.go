@@ -5,12 +5,6 @@ import (
 )
 
 const (
-	WasTypeWeblogic = "weblogic"
-	WasTypeJeus     = "jeus"
-
-	WasBuildToolTypeMaven  = "maven"
-	WasBuildToolTypeGradle = "gradle"
-
 	DbTypeOracle = "oracle"
 	DbTypeTibero = "tibero"
 )
