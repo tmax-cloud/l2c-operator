@@ -16,7 +16,6 @@ type TupDBSpec struct {
 
 	// DB destination configuration
 	To TupDBTo `json:"to"`
-
 }
 
 type TupDBFrom struct {

@@ -4,7 +4,7 @@ import (
 	"github.com/go-logr/logr"
 	"reflect"
 	"runtime"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"strings"
 )
 
