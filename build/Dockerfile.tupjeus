@@ -1,0 +1,6 @@
+FROM openjdk:8
+
+COPY build/tupjeus/mta.tar.gz /tmp/mta.tar.gz
+RUN mkdir -p /mta && \
+    tar -xvf /tmp/mta.tar.gz -C /mta && \
+    rm -rf /tmp/mta.tar.gz

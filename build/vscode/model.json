@@ -1,0 +1,26 @@
+{
+  "configurations": [
+    {
+      "id": "-38dkf89vj-wtx81drip",
+      "name": "exp2",
+      "options": {
+        "output": "/home/coder/.local/share/code-server/User/globalStorage/redhat.mta-vscode-extension/.mta/tooling/data/-38dkf89vj-wtx81drip",
+        "sourceMode": true,
+        "input": [
+          "/home/coder/project/sample"
+        ],
+        "target": [
+          "jeus:7"
+        ],
+        "source": [
+          "weblogic"
+        ],
+        "jvm": "/usr/lib/jvm/java-8-openjdk-amd64"
+      },
+      "summary": {
+        "outputLocation": "/home/coder/.local/share/code-server/User/globalStorage/redhat.mta-vscode-extension/.mta/tooling/data/-38dkf89vj-wtx81drip",
+        "executedTimestamp": ""
+      }
+    }
+  ]
+}

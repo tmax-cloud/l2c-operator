@@ -1,0 +1,32 @@
+apiVersion: tekton.dev/v1beta1
+kind: ClusterTask
+metadata:
+  name: l2c-tup-jeus
+spec:
+  params:
+    - name: project-id
+  workspaces:
+    - name: source
+      mountPath: "/home/coder/project"
+    - name: report
+      mountPath: "/home/coder/.local/share/code-server/User/globalStorage/redhat.mta-vscode-extension/.mta/tooling/data/-38dkf89vj-wtx81drip"
+  steps:
+    - name: analyze
+      image: 192.168.6.110:5000/l2c-tup-jeus:latest
+      imagePullPolicy: Always
+      command:
+        - /mta/bin/mta-cli
+        - --toolingMode
+        - --source
+        - weblogic
+        - --target
+        - jeus:7
+        - --sourceMode
+        - --ignorePattern
+        - '\.class$'
+        - --windupHome
+        - "/mta"
+        - --input
+        - "/home/coder/project"
+        - --output
+        - "/home/coder/.local/share/code-server/User/globalStorage/redhat.mta-vscode-extension/.mta/tooling/data/-38dkf89vj-wtx81drip"

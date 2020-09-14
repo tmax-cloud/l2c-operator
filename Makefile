@@ -14,11 +14,11 @@ DB_DEPLOYER_IMG   = $(REGISTRY)/$(DB_DEPLOYER_NAME):$(VERSION)
 SCAN_WAITER_NAME  = l2c-scan-waiter
 SCAN_WAITER_IMG   = $(REGISTRY)/$(SCAN_WAITER_NAME):$(VERSION)
 
-SONARQUBE_NAME  = l2c-sonarqube
-SONARQUBE_IMG   = $(REGISTRY)/$(SONARQUBE_NAME):$(VERSION)
-
 VSCODE_NAME  = l2c-vscode
 VSCODE_IMG   = $(REGISTRY)/$(VSCODE_NAME):$(VERSION)
+
+MTA_NAME = l2c-tup-jeus
+MTA_IMG  = 192.168.6.110:5000/$(MTA_NAME):$(VERSION)
 
 BIN = ./build/_output/bin
 
@@ -118,15 +118,16 @@ test-lint:
 	golangci-lint run ./... -v -E gofmt --timeout 1h0m0s
 
 
-.PHONY: pre sonarqube vscode
-pre: sonarqube vscode
-sonarqube:
-	docker build -t $(SONARQUBE_IMG) -f build/Dockerfile.sonarqube .
-	docker push $(SONARQUBE_IMG)
+.PHONY: pre vscode mta
+pre: vscode mta
 
 vscode:
 	docker build -t $(VSCODE_IMG) -f build/Dockerfile.vscode .
 	docker push $(VSCODE_IMG)
+
+mta:
+	docker build -t $(MTA_IMG) -f build/Dockerfile.tupjeus .
+	docker push $(MTA_IMG)
 
 
 .PHONY: run-local deploy
