@@ -113,7 +113,7 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 		reqLogger.Error(err, "There is no ingress yet")
 		return reconcile.Result{Requeue: true}, nil
 	}
-	if (checkIngressAndUpdate(ingress)) {
+	if checkIngressAndUpdate(ingress) {
 		reqLogger.Info("Ingress will be updated")
 		if err := r.client.Update(context.TODO(), ingress); err != nil {
 			return reconcile.Result{}, nil
@@ -174,7 +174,6 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 		return err
 	}
 	logger.Info("Ingress Created")
-
 
 	return nil
 }
