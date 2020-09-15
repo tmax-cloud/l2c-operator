@@ -1,0 +1,17 @@
+apiVersion: tmax.io/v1
+kind: TupWAS
+metadata:
+  name: tupwas-sample
+spec:
+  from:
+    type: weblogic
+    git:
+      #url: https://github.com/windup/windup-rulesets
+      url: https://github.com/sunghyunkim3/TomcatMavenApp
+      revision: master
+    buildTool: maven
+  to:
+    type: jeus
+    image:
+      url: 172.22.11.2:30500/test-tupwas
+    port: 8080

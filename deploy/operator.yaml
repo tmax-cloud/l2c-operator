@@ -21,9 +21,9 @@ spec:
           - l2c-operator
           - --storageClassName=csi-cephfs-sc
           - --encryptKey=l2c-operator-salt-12333
-          - --sonarQubeImage=tmaxcloudck/l2c-sonarqube:v0.0.1
           - --editorImage=tmaxcloudck/l2c-vscode:v0.0.1
           - --builderImageJeus=192.168.6.110:5000/s2i-jeus:8test
+          - --wasProjectStorageSize=1Gi
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
