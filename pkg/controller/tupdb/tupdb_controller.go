@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
-
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -107,6 +107,22 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, nil
 	}
 
+	ingress, _ := dbIngress(instance)
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}, ingress)
+	if err != nil && !errors.IsNotFound(err) {
+		reqLogger.Error(err, "There is no ingress yet")
+		return reconcile.Result{Requeue: true}, nil
+	}
+	if checkIngressAndUpdate(ingress) {
+		reqLogger.Info("Ingress will be updated")
+		if err := r.client.Update(context.TODO(), ingress); err != nil {
+			return reconcile.Result{}, nil
+		}
+	} else {
+		reqLogger.Info("Ingress is not well created")
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	return reconcile.Result{}, nil
 }
 
@@ -149,6 +165,15 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 		return err
 	}
 	logger.Info("Deployment Created")
+
+	ingress, err := dbIngress(instance)
+	if err != nil {
+		return err
+	}
+	if err = r.createAndUpdateStatus(ingress, instance, "error create Ingress"); err != nil {
+		return err
+	}
+	logger.Info("Ingress Created")
 
 	return nil
 }
