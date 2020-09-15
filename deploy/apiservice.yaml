@@ -1,9 +1,9 @@
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
-  name: v1.l2crun.tmax.io
+  name: v1.tup.tmax.io
 spec:
-  group: l2crun.tmax.io
+  group: tup.tmax.io
   groupPriorityMinimum: 100
   service:
     name: l2c-operator

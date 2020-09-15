@@ -124,7 +124,7 @@ rules:
 - apiGroups:
   - apiregistration.k8s.io
   resourceNames:
-  - v1.l2crun.tmax.io
+  - v1.tup.tmax.io
   resources:
   - apiservices
   verbs:

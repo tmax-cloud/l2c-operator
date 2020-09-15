@@ -1,75 +1,70 @@
-apiVersion: tekton.dev/v1alpha1
+apiVersion: tekton.dev/v1beta1
 kind: ClusterTask
 metadata:
   name: l2c-build
 spec:
   params:
-    - name: BUILDER_IMAGE
-      description: The location of the s2i builder image.
-    - name: PATH_CONTEXT
+    - description: Image to be saved
+      name: IMAGE_URL
+      type: string
+    - description: The location of the s2i builder image.
+      name: BUILDER_IMAGE
+      type: string
+    - default: .
       description: The location of the path to run s2i from.
-      default: .
-    - name: REGISTRY_SECRET_NAME
+      name: PATH_CONTEXT
+      type: string
+    - default: ""
       description: Docker registry secret (kubernetes.io/dockerconfigjson type)
-      default: ''
-    - name: TLSVERIFY
-      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-      default: 'false'
-    - name: LOGLEVEL
+      name: REGISTRY_SECRET_NAME
+      type: string
+    - default: "false"
+      description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS
+        registry)
+      name: TLSVERIFY
+      type: string
+    - default: "0"
       description: Log level when running the S2I binary
-      default: '0'
-    - name: PACKAGE_SERVER_URL
-      description: URL (including protocol, ip, port, and path) of private package server (e.g., devpi, pypi, verdaccio, ...)
-      default: ''
-  resources:
-    inputs:
-      - name: source
-        type: git
-    outputs:
-      - name: image
-        type: image
+      name: LOGLEVEL
+      type: string
+    - default: ""
+      description: URL (including protocol, ip, port, and path) of private package server
+        (e.g., devpi, pypi, verdaccio, ...)
+      name: PACKAGE_SERVER_URL
+      type: string
   results:
-    - name: image-url
-      description: Tag-updated image url
-    - name: registry-cred
-      description: Tag-updated image url
+    - description: Tag-updated image url
+      name: image-url
+    - description: Tag-updated image url
+      name: registry-cred
   steps:
-    - name: update-image-url
-      image: tmaxcloudck/cicd-util:1.0.2
-      script: |
-        #!/bin/bash
-        GIT_DIR="/workspace/source"
-        ORIGINAL_URL="$(outputs.resources.image.url)"
-        TARGET_FILE="$(results.image-url.path)"
-
-        [ $(echo $ORIGINAL_URL | awk -F '/' '{printf $NF}' | awk -F ':' '{printf "%d", split($0,a)}') -eq 1 ] && TAG=":"$(git --git-dir=$GIT_DIR/.git rev-parse --short HEAD)
-        echo "$ORIGINAL_URL$TAG" | tee $TARGET_FILE
-    - name: parse-registry-cred
-      image: tmaxcloudck/cicd-util:1.0.2
-      script: |
-        #!/bin/bash
-        FILENAME="$(results.registry-cred.path)"
-        if [ "$(params.REGISTRY_SECRET_NAME)" != "" ]; then
-            IMAGE_URL=$(cat $(results.image-url.path))
-            URL_ARR=(${IMAGE_URL//\// })
-            REGISTRY=${URL_ARR[0]}
-            NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace)
-
-            ENCODED_CFG=$(kubectl -n $NAMESPACE get secrets $(params.REGISTRY_SECRET_NAME) -o jsonpath='{.data.\.dockerconfigjson}')
-            if [ $(( $? + 0 )) -eq 0 ]; then
-                CRED=$(echo $ENCODED_CFG | base64 -d | jq -r '.auths."'$REGISTRY'".auth' --raw-output -c)
-                if [ "$CRED" == "null" ]; then
-                  CRED=""
-                fi
-                echo $CRED | tee $FILENAME
-            else
-                touch $FILENAME
-            fi
-        else
-            touch $FILENAME
-        fi
-    - name: generate
-      image: quay.io/openshift-pipeline/s2i:nightly
+    - args:
+        - update-image-url
+      env:
+        - name: SOURCE_PATH
+          value: $(workspaces.git-source.path)
+        - name: IMAGE_URL
+          value: $(params.IMAGE_URL)
+        - name: TARGET_FILE
+          value: $(results.image-url.path)
+      image: tmaxcloudck/cicd-util:latest
+      name: update-image-url
+      resources: {}
+    - args:
+        - parse-registry-cred
+      env:
+        - name: SECRET_NAME
+          value: $(params.REGISTRY_SECRET_NAME)
+        - name: IMAGE_URL_FILE
+          value: $(results.image-url.path)
+        - name: TARGET_FILE
+          value: $(results.registry-cred.path)
+      image: tmaxcloudck/cicd-util:latest
+      name: parse-registry-cred
+      resources: {}
+    - image: quay.io/openshift-pipeline/s2i:nightly
+      name: generate
+      resources: {}
       script: |
         #!/bin/sh
         set -ex
@@ -98,9 +93,10 @@ spec:
       volumeMounts:
         - mountPath: /gen-source
           name: gen-source
-      workingdir: /workspace/source
-    - name: build
-      image: quay.io/buildah/stable
+      workingDir: $(workspaces.git-source.path)
+    - image: quay.io/buildah/stable
+      name: build
+      resources: {}
       script: |
         buildah \
         bud \
@@ -121,9 +117,10 @@ spec:
           name: varlibcontainers
         - mountPath: /gen-source
           name: gen-source
-      workingdir: /gen-source
-    - name: push
-      image: quay.io/buildah/stable
+      workingDir: /gen-source
+    - image: quay.io/buildah/stable
+      name: push
+      resources: {}
       script: |
         #!/bin/bash
 
@@ -150,3 +147,6 @@ spec:
       name: varlibcontainers
     - emptyDir: {}
       name: gen-source
+  workspaces:
+    - description: Git source directory
+      name: git-source

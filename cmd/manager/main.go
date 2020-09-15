@@ -65,7 +65,7 @@ func main() {
 
 	pflag.StringVar(&internal.EditorImage, "editorImage", fmt.Sprintf("tmaxcloudck/l2c-vscode:%s", version.Version), "image url of web ide")
 
-	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "192.168.6.110:5000/s2i-jeus:8", "Builder image for JEUS WAS")
+	pflag.StringVar(&internal.BuilderImageJeus, "builderImageJeus", "tmaxcloudck/s2i-jeus:8", "Builder image for JEUS WAS")
 
 	pflag.StringVar(&internal.WasProjectStorageSize, "wasProjectStorageSize", "1Gi", "Storage size for was project size (including git project/analyze result)")
 

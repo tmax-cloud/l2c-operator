@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	ApiGroup   = "l2crun.tmax.io"
+	ApiGroup   = "tup.tmax.io"
 	ApiVersion = "v1"
-	L2cKind    = "l2cs"
+	TupDbKind  = "tupdbs"
+	TupWasKind = "tupwas"
 )
 
 var log = logf.Log.WithName("l2c-apis")
@@ -30,7 +31,11 @@ func AddV1Apis(parent *wrapper.RouterWrapper) error {
 		return err
 	}
 
-	return AddRunApis(namespaceWrapper)
+	if err := AddTupWasApis(namespaceWrapper); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func versionHandler(w http.ResponseWriter, _ *http.Request) {
@@ -41,7 +46,11 @@ func versionHandler(w http.ResponseWriter, _ *http.Request) {
 
 	apiResourceList.APIResources = []metav1.APIResource{
 		{
-			Name:       fmt.Sprintf("%s/run", L2cKind),
+			Name:       fmt.Sprintf("%s/analyze", TupWasKind),
+			Namespaced: true,
+		},
+		{
+			Name:       fmt.Sprintf("%s/run", TupWasKind),
 			Namespaced: true,
 		},
 	}

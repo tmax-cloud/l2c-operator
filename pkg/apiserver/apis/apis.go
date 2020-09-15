@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ApiGroup   = "l2crun.tmax.io"
+	ApiGroup   = "tup.tmax.io"
 	ApiVersion = "v1"
 )
 

@@ -141,7 +141,7 @@ func (t *TupWAS) GenWasServiceLabels() map[string]string {
 func (t *TupWAS) GenWasPort() (int32, error) {
 	switch t.Spec.To.Type {
 	case "jeus":
-		return 8808, nil
+		return 8080, nil
 	default:
 		return 0, fmt.Errorf("spec.was.to.type(%s) not supported", t.Spec.To.Type)
 	}

@@ -61,8 +61,23 @@ type TupWasTo struct {
 
 // TupWASStatus defines the observed state of TupWAS
 type TupWASStatus struct {
-	// Completed timestamp
-	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+	// Start time of last analysis
+	LastAnalyzeStartTime *metav1.Time `json:"lastAnalyzeStartTime,omitempty"`
+
+	// Completion time of last analysis
+	LastAnalyzeCompletionTime *metav1.Time `json:"lastAnalyzeCompletionTime,omitempty"`
+
+	// Result of last analysis
+	LastAnalyzeResult string `json:"lastAnalyzeResult,omitempty"`
+
+	// Start time of last build
+	LastBuildStartTime *metav1.Time `json:"lastBuildStartTime,omitempty"`
+
+	// Completion time of last build
+	LastBuildCompletionTime *metav1.Time `json:"lastBuildCompletionTime,omitempty"`
+
+	// Result of last build
+	LastBuildResult string `json:"lastBuildResult,omitempty"`
 
 	// TupWAS project conditions
 	Conditions []status.Condition `json:"conditions,omitempty"`
