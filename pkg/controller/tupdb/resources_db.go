@@ -170,7 +170,7 @@ func dbIngress(dbInstance *tmaxv1.TupDB) (*networkingv1beta1.Ingress, error) {
 }
 
 func checkIngressAndUpdate(ingInstance *networkingv1beta1.Ingress) bool {
-	if (ingInstance.Spec.Rules[0].Host != IngressDefault) {
+	if ingInstance.Spec.Rules[0].Host != IngressDefault {
 		return true
 	}
 	if len(ingInstance.Status.LoadBalancer.Ingress) != 0 && len(ingInstance.Spec.Rules) == 1 && ingInstance.Spec.Rules[0].Host == IngressDefault {
