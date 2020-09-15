@@ -107,7 +107,7 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 		return reconcile.Result{}, nil
 	}
 
-	ingress, err := dbIngress(instance)
+	ingress, _ := dbIngress(instance)
 	err = r.client.Get(context.TODO(), types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}, ingress)
 	if err != nil && !errors.IsNotFound(err) {
 		reqLogger.Error(err, "There is no ingress yet")
