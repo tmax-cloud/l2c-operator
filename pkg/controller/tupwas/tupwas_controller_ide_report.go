@@ -122,13 +122,15 @@ func (r *ReconcileTupWAS) deployIdeReport(instance *tmaxv1.TupWAS) error {
 		}
 	}
 
-	// Save it to status
-	if instance.Status.Editor == nil {
-		instance.Status.Editor = &tmaxv1.EditorStatus{}
+	// Save it to status - only if analyze is complete
+	if instance.Status.LastAnalyzeCompletionTime != nil {
+		if instance.Status.Editor == nil {
+			instance.Status.Editor = &tmaxv1.EditorStatus{}
+		}
+		instance.Status.Editor.Password = string(idePassword)
+		instance.Status.Editor.Url = ideUrl
+		instance.Status.ReportUrl = reportUrl
 	}
-	instance.Status.Editor.Password = string(idePassword)
-	instance.Status.Editor.Url = ideUrl
-	instance.Status.ReportUrl = reportUrl
 
 	return nil
 }

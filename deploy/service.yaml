@@ -7,7 +7,5 @@ spec:
   selector:
     name: l2c-operator
   ports:
-    - name: sonar-webhook
-      port: 34335
     - name: extension-api-server
       port: 24335

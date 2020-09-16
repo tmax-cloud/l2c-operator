@@ -106,10 +106,6 @@ spec:
         status:
           description: TupWASStatus defines the observed state of TupWAS
           properties:
-            completionTime:
-              description: Completed timestamp
-              format: date-time
-              type: string
             conditions:
               description: TupWAS project conditions
               items:
@@ -160,6 +156,28 @@ spec:
                   description: VSCode URL
                   type: string
               type: object
+            lastAnalyzeCompletionTime:
+              description: Completion time of last analysis
+              format: date-time
+              type: string
+            lastAnalyzeResult:
+              description: Result of last analysis
+              type: string
+            lastAnalyzeStartTime:
+              description: Start time of last analysis
+              format: date-time
+              type: string
+            lastBuildCompletionTime:
+              description: Completion time of last build
+              format: date-time
+              type: string
+            lastBuildResult:
+              description: Result of last build
+              type: string
+            lastBuildStartTime:
+              description: Start time of last build
+              format: date-time
+              type: string
             reportUrl:
               description: T-up Jeus URL
               type: string

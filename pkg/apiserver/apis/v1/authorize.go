@@ -54,17 +54,18 @@ func reviewAccess(w http.ResponseWriter, req *http.Request) error {
 
 	userExtras := getUserExtras(req.Header)
 
-	// URL : /apis/l2crun.tmax.io/v1/namespaces/default/l2cs/test-l2c/run
+	// URL : /apis/tup.tmax.io/v1/namespaces/<namespace>/[tupwas|tupdbs]/<resource name>/[analyze|run]
 	subPaths := strings.Split(req.URL.Path, "/")
 	if len(subPaths) != 9 {
-		return fmt.Errorf("URL should be in form of '/apis/l2crun.tmax.io/v1/namespaces/default/l2cs/<l2c-name>/run'")
+		return fmt.Errorf("URL should be in form of '/apis/tup.tmax.io/v1/namespaces/<namespace>/[tupwas|tupdbs]/<resource name>/[analyze|run]'")
 	}
+	resource := subPaths[6]
 	subResource := subPaths[8]
 
 	vars := mux.Vars(req)
 
 	ns, nsExist := vars["namespace"]
-	l2cName, nameExist := vars["l2cName"]
+	resourceName, nameExist := vars["tupName"]
 	if !nsExist || !nameExist {
 		_ = utils.RespondError(w, http.StatusBadRequest, "url is malformed")
 		return fmt.Errorf("")
@@ -76,11 +77,11 @@ func reviewAccess(w http.ResponseWriter, req *http.Request) error {
 			Groups: userGroups,
 			Extra:  userExtras,
 			ResourceAttributes: &authorization.ResourceAttributes{
-				Name:        l2cName,
+				Name:        resourceName,
 				Namespace:   ns,
 				Group:       ApiGroup,
 				Version:     ApiVersion,
-				Resource:    L2cKind,
+				Resource:    resource,
 				Subresource: subResource,
 				Verb:        "update",
 			},
