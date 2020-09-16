@@ -24,7 +24,7 @@ const (
 	Port = 24335
 )
 
-var log = logf.Log.WithName("l2c-run-server")
+var log = logf.Log.WithName("extension-api-server")
 
 type Server struct {
 	Wrapper *wrapper.RouterWrapper

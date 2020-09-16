@@ -8,12 +8,6 @@ PACKAGE_NAME  = github.com/tmax-cloud/l2c-operator
 OPERATOR_NAME  = l2c-operator
 OPERATOR_IMG   = $(REGISTRY)/$(OPERATOR_NAME):$(VERSION)
 
-DB_DEPLOYER_NAME  = l2c-db-deployer
-DB_DEPLOYER_IMG   = $(REGISTRY)/$(DB_DEPLOYER_NAME):$(VERSION)
-
-SCAN_WAITER_NAME  = l2c-scan-waiter
-SCAN_WAITER_IMG   = $(REGISTRY)/$(SCAN_WAITER_NAME):$(VERSION)
-
 VSCODE_NAME  = l2c-vscode
 VSCODE_IMG   = $(REGISTRY)/$(VSCODE_NAME):$(VERSION)
 
@@ -35,47 +29,25 @@ gen:
 	$(SDK) generate crds
 
 
-.PHONY: build build-operator build-db-deployer build-scan-waiter
-build: build-operator build-db-deployer build-scan-waiter
+.PHONY: build build-operator
+build: build-operator
 
 build-operator:
 	$(SDK) build $(OPERATOR_IMG)
 
-build-db-deployer:
-	CGO_ENABLED=0 go build -o $(BIN)/db-deployer $(PACKAGE_NAME)/cmd/db-deployer
-	docker build -t $(DB_DEPLOYER_IMG) -f build/Dockerfile.db-deployer .
 
-build-scan-waiter:
-	CGO_ENABLED=0 go build -o $(BIN)/scan-waiter $(PACKAGE_NAME)/cmd/scan-waiter
-	docker build -t $(SCAN_WAITER_IMG) -f build/Dockerfile.scan-waiter .
-
-
-.PHONY: push push-operator push-db-deployer push-scan-waiter
-push: push-operator push-db-deployer push-scan-waiter
+.PHONY: push push-operator
+push: push-operator
 
 push-operator:
 	docker push $(OPERATOR_IMG)
 
-push-db-deployer:
-	docker push $(DB_DEPLOYER_IMG)
 
-push-scan-waiter:
-	docker push $(SCAN_WAITER_IMG)
-
-
-.PHONY: push-latest push-operator-latest push-db-deployer-latest push-scan-waiter-latest
-push-latest: push-operator-latest push-db-deployer-latest push-scan-waiter-latest
+.PHONY: push-latest push-operator-latest
+push-latest: push-operator-latest
 push-operator-latest:
 	docker tag $(OPERATOR_IMG) $(REGISTRY)/$(OPERATOR_NAME):latest
 	docker push $(REGISTRY)/$(OPERATOR_NAME):latest
-
-push-db-deployer-latest:
-	docker tag $(DB_DEPLOYER_IMG) $(REGISTRY)/$(DB_DEPLOYER_NAME):latest
-	docker push $(REGISTRY)/$(DB_DEPLOYER_NAME):latest
-
-push-scan-waiter-latest:
-	docker tag $(SCAN_WAITER_IMG) $(REGISTRY)/$(SCAN_WAITER_NAME):latest
-	docker push $(REGISTRY)/$(SCAN_WAITER_NAME):latest
 
 
 .PHONY: test test-gen save-sha-gen compare-sha-gen test-verify save-sha-mod compare-sha-mod verify test-unit test-lint

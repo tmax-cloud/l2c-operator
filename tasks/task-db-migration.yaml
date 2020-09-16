@@ -24,16 +24,6 @@ spec:
     - name: TARGET_PORT
       description: Target DBMS port
   steps:
-    - name: deploy-db
-      image: tmaxcloudck/l2c-db-deployer:v0.0.1
-      imagePullPolicy: Always
-      env:
-      - name: DO_MIGRATE_DB
-        value: $(params.DO_MIGRATE_DB)
-      - name: CONFIGMAP_NAME
-        value: $(params.CM_NAME)
-      - name: WAIT_UNTIL_RUNNING
-        value: "true"
     - name: migrate-db
       image: 192.168.6.110:5000/tup-tibero:latest
       imagePullPolicy: Always

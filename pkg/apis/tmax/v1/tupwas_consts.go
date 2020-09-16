@@ -27,6 +27,9 @@ const (
 const (
 	TaskNameGitClone   = "l2c-git-clone"
 	TaskNameAnalyzeWas = "l2c-tup-jeus"
+
+	TaskNameBuild  = "l2c-build"
+	TaskNameDeploy = "l2c-deploy"
 )
 
 // PipelineTaskName* : Task name written in Pipeline.spec.tasks

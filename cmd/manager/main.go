@@ -126,7 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Start extension API server for l2c/run
+	// Start extension API server for TupWAS/TupDB
 	extServer := apiserver.New()
 	go extServer.Start()
 

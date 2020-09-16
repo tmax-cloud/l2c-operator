@@ -54,7 +54,7 @@ func (s *TupWASStatus) SetDefaultConditions() {
 	}
 	for _, t := range tupWasConditions {
 		cond.Type = t
-		if t == ConditionKeyProjectSucceeded {
+		if t == WasConditionKeyProjectSucceeded {
 			cond.Status = corev1.ConditionUnknown
 			cond.Reason = "Not executed or still running"
 		}
