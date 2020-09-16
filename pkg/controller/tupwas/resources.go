@@ -195,7 +195,7 @@ func buildDeployPipeline(tupWas *tmaxv1.TupWAS) (*tektonv1.Pipeline, error) {
 				RunAfter: []string{string(tmaxv1.WasPipelineTaskNameBuild)},
 				Params: []tektonv1.Param{
 					{Name: "app-name", Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.WasPipelineParamNameAppName)}},
-					{Name: "image-url", Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(tasks.%s.results.image-url)", tmaxv1.PipelineTaskNameBuild)}},
+					{Name: "image-url", Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(tasks.%s.results.image-url)", tmaxv1.WasPipelineTaskNameBuild)}},
 					{Name: "deploy-cfg-name", Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.WasPipelineParamNameDeployCfg)}},
 					{Name: "deploy-env-json", Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "{}"}},
 				},

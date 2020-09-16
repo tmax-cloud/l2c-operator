@@ -95,6 +95,14 @@ type TupWASStatus struct {
 	WasUrl string `json:"wasUrl,omitempty"`
 }
 
+type EditorStatus struct {
+	// VSCode URL
+	Url string `json:"url,omitempty"`
+
+	// VSCode access code
+	Password string `json:"password,omitempty"`
+}
+
 type TupWasTaskStatus struct {
 	//
 	TaskRunName string `json:"taskRunName"`
