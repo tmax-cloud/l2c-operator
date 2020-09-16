@@ -106,8 +106,9 @@ func (t *TupWAS) GenWasLabels() map[string]string {
 
 func (t *TupWAS) GenWasServiceLabels() map[string]string {
 	return map[string]string{
-		"tupWas": t.Name,
-		"tier":   t.Spec.To.Type,
+		"tupWas":    t.Name,
+		"component": "was",
+		"tier":      "pod",
 	}
 }
 

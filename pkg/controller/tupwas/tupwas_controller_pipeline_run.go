@@ -41,6 +41,7 @@ func (r *ReconcileTupWAS) watchPipelineRun(instance *tmaxv1.TupWAS) error {
 	} else if err != nil && errors.IsNotFound(err) {
 		instance.Status.BuildPipelineRunName = ""
 		instance.Status.SetCondition(tmaxv1.WasConditionKeyProjectRunning, corev1.ConditionFalse, "PipelineRun is not running", "")
+		instance.Status.SetCondition(tmaxv1.WasConditionKeyProjectSucceeded, corev1.ConditionFalse, "", "")
 	} else if err == nil {
 		instance.Status.BuildPipelineRunName = instance.GenBuildDeployPipelineName()
 		instance.Status.LastBuildStartTime = buildPr.Status.StartTime
@@ -59,6 +60,8 @@ func (r *ReconcileTupWAS) watchPipelineRun(instance *tmaxv1.TupWAS) error {
 			// Build/Deploy Complete
 			if condition.Reason == string(tektonv1.PipelineRunReasonSuccessful) {
 				instance.Status.SetCondition(tmaxv1.WasConditionKeyProjectSucceeded, corev1.ConditionTrue, "", "")
+			} else {
+				instance.Status.SetCondition(tmaxv1.WasConditionKeyProjectSucceeded, corev1.ConditionFalse, "", "")
 			}
 		}
 	}
