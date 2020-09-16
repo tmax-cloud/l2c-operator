@@ -5,6 +5,8 @@ metadata:
 spec:
   params:
     - name: project-id
+    - name: source-type
+    - name: target-type
   workspaces:
     - name: source
       mountPath: "/home/coder/project"
@@ -18,9 +20,9 @@ spec:
         - /mta/bin/mta-cli
         - --toolingMode
         - --source
-        - weblogic
+        - "$(params.source-type)"
         - --target
-        - jeus:7
+        - "$(params.target-type)"
         - --sourceMode
         - --ignorePattern
         - '\.class$'

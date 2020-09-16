@@ -34,12 +34,6 @@ spec:
             from:
               description: WAS source configuration
               properties:
-                buildTool:
-                  description: Build Tool
-                  enum:
-                  - maven
-                  - gradle
-                  type: string
                 git:
                   description: Git information for WAS source code
                   properties:
@@ -62,7 +56,6 @@ spec:
                   - weblogic
                   type: string
               required:
-              - buildTool
               - git
               - type
               type: object
@@ -92,7 +85,8 @@ spec:
                 type:
                   description: Target WAS type, to be migrated
                   enum:
-                  - jeus
+                  - jeus:7
+                  - jeus:8
                   type: string
               required:
               - image
@@ -106,6 +100,12 @@ spec:
         status:
           description: TupWASStatus defines the observed state of TupWAS
           properties:
+            analyzePipelineRunName:
+              description: PipelineRun name for Analyze
+              type: string
+            buildPipelineRunName:
+              description: PipelineRun name for Build/Deploy
+              type: string
             conditions:
               description: TupWAS project conditions
               items:
@@ -181,203 +181,6 @@ spec:
             reportUrl:
               description: T-up Jeus URL
               type: string
-            taskStatus:
-              description: Status of each Task
-              items:
-                properties:
-                  completionTime:
-                    format: date-time
-                    type: string
-                  conditions:
-                    items:
-                      description: "Condition represents an observation of an object's
-                        state. Conditions are an extension mechanism intended to be
-                        used when the details of an observation are not a priori known
-                        or would not apply to all instances of a given Kind. \n Conditions
-                        should be added to explicitly convey properties that users
-                        and components care about rather than requiring those properties
-                        to be inferred from other observations. Once defined, the
-                        meaning of a Condition can not be changed arbitrarily - it
-                        becomes part of the API, and has the same backwards- and forwards-compatibility
-                        concerns of any other part of the API."
-                      properties:
-                        lastTransitionTime:
-                          format: date-time
-                          type: string
-                        message:
-                          type: string
-                        reason:
-                          description: ConditionReason is intended to be a one-word,
-                            CamelCase representation of the category of cause of the
-                            current status. It is intended to be used in concise output,
-                            such as one-line kubectl get output, and in summarizing
-                            occurrences of causes.
-                          type: string
-                        status:
-                          type: string
-                        type:
-                          description: "ConditionType is the type of the condition
-                            and is typically a CamelCased word or short phrase. \n
-                            Condition types should indicate state in the \"abnormal-true\"
-                            polarity. For example, if the condition indicates when
-                            a policy is invalid, the \"is valid\" case is probably
-                            the norm, so the condition should be called \"Invalid\"."
-                          type: string
-                      required:
-                      - status
-                      - type
-                      type: object
-                    type: array
-                  podName:
-                    type: string
-                  sidecars:
-                    items:
-                      description: SidecarState reports the results of running a sidecar
-                        in a Task.
-                      properties:
-                        container:
-                          type: string
-                        imageID:
-                          type: string
-                        name:
-                          type: string
-                        running:
-                          description: Details about a running container
-                          properties:
-                            startedAt:
-                              description: Time at which the container was last (re-)started
-                              format: date-time
-                              type: string
-                          type: object
-                        terminated:
-                          description: Details about a terminated container
-                          properties:
-                            containerID:
-                              description: Container's ID in the format 'docker://<container_id>'
-                              type: string
-                            exitCode:
-                              description: Exit status from the last termination of
-                                the container
-                              format: int32
-                              type: integer
-                            finishedAt:
-                              description: Time at which the container last terminated
-                              format: date-time
-                              type: string
-                            message:
-                              description: Message regarding the last termination
-                                of the container
-                              type: string
-                            reason:
-                              description: (brief) reason from the last termination
-                                of the container
-                              type: string
-                            signal:
-                              description: Signal from the last termination of the
-                                container
-                              format: int32
-                              type: integer
-                            startedAt:
-                              description: Time at which previous execution of the
-                                container started
-                              format: date-time
-                              type: string
-                          required:
-                          - exitCode
-                          type: object
-                        waiting:
-                          description: Details about a waiting container
-                          properties:
-                            message:
-                              description: Message regarding why the container is
-                                not yet running.
-                              type: string
-                            reason:
-                              description: (brief) reason the container is not yet
-                                running.
-                              type: string
-                          type: object
-                      type: object
-                    type: array
-                  startTime:
-                    format: date-time
-                    type: string
-                  steps:
-                    items:
-                      description: StepState reports the results of running a step
-                        in a Task.
-                      properties:
-                        container:
-                          type: string
-                        imageID:
-                          type: string
-                        name:
-                          type: string
-                        running:
-                          description: Details about a running container
-                          properties:
-                            startedAt:
-                              description: Time at which the container was last (re-)started
-                              format: date-time
-                              type: string
-                          type: object
-                        terminated:
-                          description: Details about a terminated container
-                          properties:
-                            containerID:
-                              description: Container's ID in the format 'docker://<container_id>'
-                              type: string
-                            exitCode:
-                              description: Exit status from the last termination of
-                                the container
-                              format: int32
-                              type: integer
-                            finishedAt:
-                              description: Time at which the container last terminated
-                              format: date-time
-                              type: string
-                            message:
-                              description: Message regarding the last termination
-                                of the container
-                              type: string
-                            reason:
-                              description: (brief) reason from the last termination
-                                of the container
-                              type: string
-                            signal:
-                              description: Signal from the last termination of the
-                                container
-                              format: int32
-                              type: integer
-                            startedAt:
-                              description: Time at which previous execution of the
-                                container started
-                              format: date-time
-                              type: string
-                          required:
-                          - exitCode
-                          type: object
-                        waiting:
-                          description: Details about a waiting container
-                          properties:
-                            message:
-                              description: Message regarding why the container is
-                                not yet running.
-                              type: string
-                            reason:
-                              description: (brief) reason the container is not yet
-                                running.
-                              type: string
-                          type: object
-                      type: object
-                    type: array
-                  taskRunName:
-                    type: string
-                required:
-                - podName
-                - taskRunName
-                type: object
-              type: array
             wasUrl:
               description: Migrated Was URL
               type: string

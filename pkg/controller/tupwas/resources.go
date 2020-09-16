@@ -106,14 +106,16 @@ func analyzePipeline(tupWas *tmaxv1.TupWAS) *tektonv1.Pipeline {
 			Labels:    tupWas.GenLabels(),
 		},
 		Spec: tektonv1.PipelineSpec{
-			Params: []tektonv1.ParamSpec{{
-				Name: tmaxv1.WasPipelineParamNameProjectId,
-			}, {
-				Name: tmaxv1.WasPipelineParamNameGitUrl,
-			}, {
-				Name:    tmaxv1.WasPipelineParamNameGitRev,
-				Default: &tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "master"},
-			}},
+			Params: []tektonv1.ParamSpec{
+				{Name: tmaxv1.WasPipelineParamNameProjectId},
+				{Name: tmaxv1.WasPipelineParamNameGitUrl},
+				{
+					Name:    tmaxv1.WasPipelineParamNameGitRev,
+					Default: &tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: "master"},
+				},
+				{Name: tmaxv1.WasPipelineParamNameSourceType},
+				{Name: tmaxv1.WasPipelineParamNameTargetType},
+			},
 			Workspaces: []tektonv1.PipelineWorkspaceDeclaration{{Name: tmaxv1.WasPipelineWorkspaceName}},
 			Tasks: []tektonv1.PipelineTask{{
 				Name:    string(tmaxv1.WasPipelineTaskNameClone),
@@ -143,6 +145,12 @@ func analyzePipeline(tupWas *tmaxv1.TupWAS) *tektonv1.Pipeline {
 				Params: []tektonv1.Param{{
 					Name:  "project-id",
 					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.WasPipelineParamNameProjectId)},
+				}, {
+					Name:  "source-type",
+					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.WasPipelineParamNameSourceType)},
+				}, {
+					Name:  "target-type",
+					Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: fmt.Sprintf("$(params.%s)", tmaxv1.WasPipelineParamNameTargetType)},
 				}},
 				Workspaces: []tektonv1.WorkspacePipelineTaskBinding{{
 					Name:      "source",
@@ -202,4 +210,63 @@ func buildDeployPipeline(tupWas *tmaxv1.TupWAS) (*tektonv1.Pipeline, error) {
 			}},
 		},
 	}, nil
+}
+
+func AnalyzePipelineRun(tupWas *tmaxv1.TupWAS) *tektonv1.PipelineRun {
+	return &tektonv1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tupWas.GenAnalyzePipelineName(),
+			Namespace: tupWas.Namespace,
+			Labels:    tupWas.GenLabels(),
+		},
+		Spec: tektonv1.PipelineRunSpec{
+			PipelineRef: &tektonv1.PipelineRef{Name: tupWas.GenAnalyzePipelineName()},
+			Params: []tektonv1.Param{{
+				Name:  tmaxv1.WasPipelineParamNameProjectId,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Name},
+			}, {
+				Name:  tmaxv1.WasPipelineParamNameGitUrl,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Spec.From.Git.Url},
+			}, {
+				Name:  tmaxv1.WasPipelineParamNameGitRev,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Spec.From.Git.Revision},
+			}, {
+				Name:  tmaxv1.WasPipelineParamNameSourceType,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Spec.From.Type},
+			}, {
+				Name:  tmaxv1.WasPipelineParamNameTargetType,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Spec.To.Type},
+			}},
+			Workspaces: []tektonv1.WorkspaceBinding{{
+				Name:                  tmaxv1.WasPipelineWorkspaceName,
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: tupWas.GenResourceName()},
+			}},
+		},
+	}
+}
+
+func BuildDeployPipelineRun(tupWas *tmaxv1.TupWAS) *tektonv1.PipelineRun {
+	return &tektonv1.PipelineRun{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tupWas.GenBuildDeployPipelineName(),
+			Namespace: tupWas.Namespace,
+			Labels:    tupWas.GenLabels(),
+		},
+		Spec: tektonv1.PipelineRunSpec{
+			PipelineRef:        &tektonv1.PipelineRef{Name: tupWas.GenBuildDeployPipelineName()},
+			ServiceAccountName: tupWas.GenResourceName(),
+			Params: []tektonv1.Param{{
+				Name:  tmaxv1.WasPipelineParamNameAppName,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.Name},
+			}, {
+				Name:  tmaxv1.WasPipelineParamNameDeployCfg,
+				Value: tektonv1.ArrayOrString{Type: tektonv1.ParamTypeString, StringVal: tupWas.GenWasResourceName()},
+			}},
+			Workspaces: []tektonv1.WorkspaceBinding{{
+				Name:                  tmaxv1.WasPipelineWorkspaceName,
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: tupWas.GenResourceName()},
+				SubPath:               "project/" + tupWas.Name,
+			}},
+		},
+	}
 }

@@ -3,7 +3,6 @@ package v1
 import (
 	"fmt"
 	"github.com/operator-framework/operator-sdk/pkg/status"
-	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tmax-cloud/l2c-operator/internal"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,34 +61,6 @@ func (s *TupWASStatus) SetDefaultConditions() {
 	}
 }
 
-func (s *TupWasTaskStatus) CopyFromTaskRunStatus(trStatus *tektonv1.PipelineRunTaskRunStatus) {
-	// Conditions
-	for _, cond := range trStatus.Status.Conditions {
-		s.Conditions = append(s.Conditions, status.Condition{
-			Type:               status.ConditionType(cond.Type),
-			Status:             cond.Status,
-			Reason:             status.ConditionReason(cond.Reason),
-			Message:            cond.Message,
-			LastTransitionTime: cond.LastTransitionTime.Inner,
-		})
-	}
-
-	// PodName
-	s.PodName = trStatus.Status.PodName
-
-	// StartTime
-	s.StartTime = trStatus.Status.StartTime
-
-	// CompletionTime
-	s.CompletionTime = trStatus.Status.CompletionTime
-
-	// Steps
-	s.Steps = append(s.Steps, trStatus.Status.Steps...)
-
-	// Sidecars
-	s.Sidecars = append(s.Sidecars, trStatus.Status.Sidecars...)
-}
-
 // Supporting functions
 func (t *TupWAS) GenResourceName() string {
 	return t.Name
@@ -104,8 +75,10 @@ func (t *TupWAS) GenLabels() map[string]string {
 
 func (t *TupWAS) GenBuilderImage() (string, error) {
 	switch t.Spec.To.Type {
-	case "jeus":
-		return internal.BuilderImageJeus, nil
+	case "jeus:7":
+		return internal.BuilderImageJeus7, nil
+	case "jeus:8":
+		return internal.BuilderImageJeus8, nil
 	default:
 		return "", fmt.Errorf("%s was type is not supported", t.Spec.To.Type)
 	}
@@ -140,7 +113,7 @@ func (t *TupWAS) GenWasServiceLabels() map[string]string {
 
 func (t *TupWAS) GenWasPort() (int32, error) {
 	switch t.Spec.To.Type {
-	case "jeus":
+	case "jeus:7", "jeus:8":
 		return 8080, nil
 	default:
 		return 0, fmt.Errorf("spec.was.to.type(%s) not supported", t.Spec.To.Type)

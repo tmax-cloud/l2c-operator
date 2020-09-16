@@ -10,6 +10,7 @@ import (
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
+	tupwascontroller "github.com/tmax-cloud/l2c-operator/pkg/controller/tupwas"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -113,7 +114,7 @@ func tupWasApiHandler(w http.ResponseWriter, req *http.Request, apiType ApiType)
 	switch apiType {
 	case ApiTypeAnalyze:
 		cond, condFound = tupWas.Status.GetCondition(tmaxv1.WasConditionKeyProjectAnalyzing)
-		pr = tupWasAnalyzePipelineRun(tupWas)
+		pr = tupwascontroller.AnalyzePipelineRun(tupWas)
 		msg = fmt.Sprintf("tupWas %s has started analyzing", tupWas.Name)
 
 		// Check if TupWAS project is ready, if not, return error
@@ -124,7 +125,7 @@ func tupWasApiHandler(w http.ResponseWriter, req *http.Request, apiType ApiType)
 		}
 	case ApiTypeRun:
 		cond, condFound = tupWas.Status.GetCondition(tmaxv1.WasConditionKeyProjectRunning)
-		pr = tupWasBuildDeployPipelineRun(tupWas)
+		pr = tupwascontroller.BuildDeployPipelineRun(tupWas)
 		msg = fmt.Sprintf("tupWas %s has started running", tupWas.Name)
 
 		// Check if analyze is complete

@@ -2,7 +2,6 @@ package v1
 
 import (
 	"github.com/operator-framework/operator-sdk/pkg/status"
-	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -39,17 +38,13 @@ type TupWasFrom struct {
 	// Git information for WAS source code
 	Git TupWasGit `json:"git"`
 
-	// Build Tool
-	// +kubebuilder:validation:Enum=maven;gradle
-	BuildTool string `json:"buildTool"`
-
 	// Package server URL that would be used while building the application
 	PackageServer string `json:"packageServerUrl,omitempty"`
 }
 
 type TupWasTo struct {
 	// Target WAS type, to be migrated
-	// +kubebuilder:validation:Enum=jeus
+	// +kubebuilder:validation:Enum="jeus:7";"jeus:8"
 	Type string `json:"type"`
 
 	// Image, in which the built application image would be saved
@@ -79,11 +74,14 @@ type TupWASStatus struct {
 	// Result of last build
 	LastBuildResult string `json:"lastBuildResult,omitempty"`
 
+	// PipelineRun name for Analyze
+	AnalyzePipelineRunName string `json:"analyzePipelineRunName,omitempty"`
+
+	// PipelineRun name for Build/Deploy
+	BuildPipelineRunName string `json:"buildPipelineRunName,omitempty"`
+
 	// TupWAS project conditions
 	Conditions []status.Condition `json:"conditions,omitempty"`
-
-	// Status of each Task
-	TaskStatus []TupWasTaskStatus `json:"taskStatus,omitempty"`
 
 	// Editor (VSCode) status
 	Editor *EditorStatus `json:"editor,omitempty"`
@@ -101,29 +99,6 @@ type EditorStatus struct {
 
 	// VSCode access code
 	Password string `json:"password,omitempty"`
-}
-
-type TupWasTaskStatus struct {
-	//
-	TaskRunName string `json:"taskRunName"`
-
-	//
-	Conditions []status.Condition `json:"conditions,omitempty"`
-
-	//
-	PodName string `json:"podName"`
-
-	//
-	StartTime *metav1.Time `json:"startTime,omitempty"`
-
-	//
-	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
-
-	//
-	Steps []tektonv1.StepState `json:"steps,omitempty"`
-
-	//
-	Sidecars []tektonv1.SidecarState `json:"sidecars,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
