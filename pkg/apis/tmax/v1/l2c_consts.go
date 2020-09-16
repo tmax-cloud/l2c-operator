@@ -5,5 +5,6 @@ import (
 )
 
 const (
+	DbTypeTibero             = "tibero"
 	ConditionKeyProjectReady = status.ConditionType("Ready")
 )

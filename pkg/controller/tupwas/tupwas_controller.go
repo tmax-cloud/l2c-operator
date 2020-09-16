@@ -263,8 +263,8 @@ func (r *ReconcileTupWAS) ingressMapper(ing handler.MapObject) []reconcile.Reque
 	}
 
 	if setTupWas != "" && isTierWas {
-		l2c := &tmaxv1.L2c{}
-		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: setTupWas, Namespace: ing.Meta.GetNamespace()}, l2c); err != nil {
+		tupWas := &tmaxv1.TupWAS{}
+		if err := r.client.Get(context.TODO(), types.NamespacedName{Name: setTupWas, Namespace: ing.Meta.GetNamespace()}, tupWas); err != nil {
 			return []reconcile.Request{}
 		}
 		return []reconcile.Request{{
