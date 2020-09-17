@@ -7,9 +7,6 @@ import (
 const (
 	WasTypeWeblogic = "weblogic"
 	WasTypeJeus     = "jeus"
-
-	WasBuildToolTypeMaven  = "maven"
-	WasBuildToolTypeGradle = "gradle"
 )
 
 const (
@@ -17,10 +14,6 @@ const (
 	WasConditionKeyProjectAnalyzing = status.ConditionType("Analyzing")
 	WasConditionKeyProjectRunning   = status.ConditionType("Running")
 	WasConditionKeyProjectSucceeded = status.ConditionType("Succeeded")
-
-	WasConditionKeyPhaseAnalyze = status.ConditionType("Analyze")
-	WasConditionKeyPhaseBuild   = status.ConditionType("Build")
-	WasConditionKeyPhaseDeploy  = status.ConditionType("Deploy")
 )
 
 // TaskName* : Actual name of Task object
@@ -44,9 +37,11 @@ const (
 )
 
 const (
-	WasPipelineParamNameProjectId = "project-id"
-	WasPipelineParamNameGitUrl    = "git-url"
-	WasPipelineParamNameGitRev    = "git-rev"
+	WasPipelineParamNameProjectId  = "project-id"
+	WasPipelineParamNameGitUrl     = "git-url"
+	WasPipelineParamNameGitRev     = "git-rev"
+	WasPipelineParamNameSourceType = "source-type"
+	WasPipelineParamNameTargetType = "target-type"
 
 	WasPipelineParamNameAppName   = "app-name"
 	WasPipelineParamNameDeployCfg = "deploy-cfg-name"

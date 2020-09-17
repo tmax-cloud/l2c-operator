@@ -191,6 +191,7 @@ func (r *ReconcileTupWAS) Reconcile(request reconcile.Request) (reconcile.Result
 	wasIngress := &networkingv1beta1.Ingress{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.GenWasResourceName(), Namespace: instance.Namespace}, wasIngress)
 	if err != nil && !errors.IsNotFound(err) {
+		instance.Status.WasUrl = ""
 		return reconcile.Result{}, err
 	} else if err == nil {
 		if len(wasIngress.Status.LoadBalancer.Ingress) != 0 && len(wasIngress.Spec.Rules) == 1 && wasIngress.Spec.Rules[0].Host == IngressDefaultHost {

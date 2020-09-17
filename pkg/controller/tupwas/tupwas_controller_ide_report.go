@@ -110,7 +110,7 @@ func (r *ReconcileTupWAS) deployIdeReport(instance *tmaxv1.TupWAS) error {
 					return err
 				}
 				return err
-			} else if (err != nil && errors.IsNotFound(err)) || (err == nil && ideDeploy.Status.Replicas != ideDeploy.Status.ReadyReplicas) {
+			} else if (err != nil && errors.IsNotFound(err)) || (err == nil && (ideDeploy.Status.Replicas == 0 || ideDeploy.Status.Replicas != ideDeploy.Status.ReadyReplicas)) {
 				msg := "some replicas are not ready yet"
 				if err != nil {
 					msg = err.Error()

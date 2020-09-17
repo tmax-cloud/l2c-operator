@@ -11,5 +11,6 @@ var (
 
 // Builder images
 var (
-	BuilderImageJeus string
+	BuilderImageJeus7 string
+	BuilderImageJeus8 string
 )
