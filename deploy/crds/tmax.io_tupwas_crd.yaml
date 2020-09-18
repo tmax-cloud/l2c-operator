@@ -78,10 +78,14 @@ spec:
                   required:
                   - url
                   type: object
-                port:
-                  description: Port number WAS would use
-                  format: int32
-                  type: integer
+                serviceType:
+                  description: ServiceType Default value is Ingress
+                  enum:
+                  - Ingress
+                  - ClusterIP
+                  - NodePort
+                  - LoadBalancer
+                  type: string
                 type:
                   description: Target WAS type, to be migrated
                   enum:
@@ -90,7 +94,6 @@ spec:
                   type: string
               required:
               - image
-              - port
               - type
               type: object
           required:

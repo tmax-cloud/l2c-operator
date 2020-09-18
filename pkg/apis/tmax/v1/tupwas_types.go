@@ -50,8 +50,10 @@ type TupWasTo struct {
 	// Image, in which the built application image would be saved
 	Image TupWasImage `json:"image"`
 
-	// Port number WAS would use
-	Port int32 `json:"port"`
+	// ServiceType
+	// Default value is Ingress
+	// +kubebuilder:validation:Enum=Ingress;ClusterIP;NodePort;LoadBalancer
+	ServiceType string `json:"serviceType,omitempty"`
 }
 
 // TupWASStatus defines the observed state of TupWAS

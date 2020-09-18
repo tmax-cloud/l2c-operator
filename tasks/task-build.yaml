@@ -98,13 +98,14 @@ spec:
       name: build
       resources: {}
       script: |
+        #!/bin/bash -x
+
         buildah \
         bud \
         --format \
         docker \
         --tls-verify=$(inputs.params.TLSVERIFY) \
         --storage-driver=vfs \
-        --layers \
         -f \
         /gen-source/Dockerfile.gen \
         -t \
@@ -122,7 +123,7 @@ spec:
       name: push
       resources: {}
       script: |
-        #!/bin/bash
+        #!/bin/bash -x
 
         IMAGE_URL=$(cat $(results.image-url.path))
         REG_CRED=$(cat $(results.registry-cred.path) | base64 -d)

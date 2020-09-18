@@ -120,3 +120,9 @@ func (t *TupWAS) GenWasPort() (int32, error) {
 		return 0, fmt.Errorf("spec.was.to.type(%s) not supported", t.Spec.To.Type)
 	}
 }
+
+func (t *TupWAS) GenIngressAnnotation() map[string]string {
+	return map[string]string{
+		"kubernetes.io/ingress.class": internal.IngressClass,
+	}
+}

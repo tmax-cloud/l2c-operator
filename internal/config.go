@@ -4,7 +4,8 @@ var (
 	EditorImage      string
 	StorageClassName string
 
-	EncryptKey string
+	EncryptKey   string
+	IngressClass string
 
 	WasProjectStorageSize string
 )

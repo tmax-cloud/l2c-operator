@@ -2,11 +2,17 @@ package v1
 
 import (
 	"github.com/operator-framework/operator-sdk/pkg/status"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
 	WasTypeWeblogic = "weblogic"
 	WasTypeJeus     = "jeus"
+
+	WasServiceTypeClusterIP    = string(corev1.ServiceTypeClusterIP)
+	WasServiceTypeNodePort     = string(corev1.ServiceTypeNodePort)
+	WasServiceTypeLoadBalancer = string(corev1.ServiceTypeLoadBalancer)
+	WasServiceTypeIngress      = "Ingress"
 )
 
 const (
