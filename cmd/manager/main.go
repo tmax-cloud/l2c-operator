@@ -62,6 +62,7 @@ func main() {
 	// Add configurations
 	pflag.StringVar(&internal.StorageClassName, "storageClassName", "csi-cephfs-sc", "storage class name for PVC to be created")
 	pflag.StringVar(&internal.EncryptKey, "encryptKey", "l2c-operator-salt-12333", "Encryption key for storing password")
+	pflag.StringVar(&internal.IngressClass, "ingressClass", "nginx-shd", "Ingress class")
 
 	pflag.StringVar(&internal.EditorImage, "editorImage", fmt.Sprintf("tmaxcloudck/l2c-vscode:%s", version.Version), "image url of web ide")
 

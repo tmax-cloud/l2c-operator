@@ -3,7 +3,6 @@ package tupwas
 import (
 	"fmt"
 	tektonv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -81,35 +80,14 @@ func (r *ReconcileTupWAS) deployResources(instance *tmaxv1.TupWAS) error {
 
 	// If Build/Deploy Complete, deploy WAS service/ingress
 	if instance.Status.LastBuildCompletionTime != nil && instance.Status.LastBuildResult == string(tektonv1.PipelineRunReasonSuccessful) {
-		// Service for WAS deployment
-		wasService, err := wasService(instance)
-		if err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.WasConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating service", err.Error()); err != nil {
-				return err
-			}
+		if err := r.deployWasNetwork(instance); err != nil {
 			return err
 		}
-		if err := utils.CheckAndCreateObject(wasService, nil, r.client, r.scheme, false); err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.WasConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating service", err.Error()); err != nil {
-				return err
-			}
-			return err
-		}
+	}
 
-		// Ingress for WAS deployment
-		wasIngress, err := wasIngress(instance)
-		if err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.WasConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating ingress", err.Error()); err != nil {
-				return err
-			}
-			return err
-		}
-		if err := utils.CheckAndCreateObject(wasIngress, nil, r.client, r.scheme, false); err != nil {
-			if err := r.updateErrorStatus(instance, tmaxv1.WasConditionKeyProjectReady, corev1.ConditionFalse, "error getting/creating ingress", err.Error()); err != nil {
-				return err
-			}
-			return err
-		}
+	// Manage WAS network (Service/Ingress)
+	if err := r.manageWasNetwork(instance); err != nil {
+		return err
 	}
 
 	// If it is ready (only once when analyze is not executed at all) and not analyzing, launch analyze once

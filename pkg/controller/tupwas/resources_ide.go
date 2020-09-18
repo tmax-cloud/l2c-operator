@@ -73,9 +73,10 @@ func ideReportService(tupWas *tmaxv1.TupWAS) (*corev1.Service, error) {
 func ideReportIngress(tupWas *tmaxv1.TupWAS) (*networkingv1beta1.Ingress, error) {
 	return &networkingv1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ideReportResourceName(tupWas),
-			Namespace: tupWas.Namespace,
-			Labels:    ideReportLabels(tupWas),
+			Name:        ideReportResourceName(tupWas),
+			Namespace:   tupWas.Namespace,
+			Labels:      ideReportLabels(tupWas),
+			Annotations: tupWas.GenIngressAnnotation(),
 		},
 		Spec: networkingv1beta1.IngressSpec{
 			Rules: []networkingv1beta1.IngressRule{{

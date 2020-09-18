@@ -21,6 +21,7 @@ spec:
           - l2c-operator
           - --storageClassName=csi-cephfs-sc
           - --encryptKey=l2c-operator-salt-12333
+          - --ingressClass=nginx-shd
           - --editorImage=tmaxcloudck/l2c-vscode:v0.0.1
           - --builderImageJeus7=tmaxcloudck/s2i-jeus:8 # TODO - Jeus7 builder image
           - --builderImageJeus8=tmaxcloudck/s2i-jeus:8

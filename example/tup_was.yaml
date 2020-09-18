@@ -13,4 +13,4 @@ spec:
     type: jeus:7
     image:
       url: 172.22.11.2:30500/test-tupwas
-    port: 8080
+    serviceType: Ingress

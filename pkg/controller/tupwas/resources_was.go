@@ -12,6 +12,11 @@ import (
 )
 
 func wasService(tupWas *tmaxv1.TupWAS) (*corev1.Service, error) {
+	serviceType := tupWas.Spec.To.ServiceType
+	// If service type is Ingress(=default), set it ClusterIP
+	if serviceType == "" || serviceType == tmaxv1.WasServiceTypeIngress {
+		serviceType = tmaxv1.WasServiceTypeClusterIP
+	}
 	port, err := tupWas.GenWasPort()
 	if err != nil {
 		return nil, err
@@ -23,7 +28,7 @@ func wasService(tupWas *tmaxv1.TupWAS) (*corev1.Service, error) {
 			Labels:    tupWas.GenWasLabels(),
 		},
 		Spec: corev1.ServiceSpec{
-			Type: "ClusterIP", // Should it be configurable? currently no...I think
+			Type: corev1.ServiceType(serviceType),
 			Ports: []corev1.ServicePort{
 				{
 					Port: port,
@@ -41,9 +46,10 @@ func wasIngress(tupWas *tmaxv1.TupWAS) (*networkingv1beta1.Ingress, error) {
 	}
 	return &networkingv1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      tupWas.GenWasResourceName(),
-			Namespace: tupWas.Namespace,
-			Labels:    tupWas.GenWasLabels(),
+			Name:        tupWas.GenWasResourceName(),
+			Namespace:   tupWas.Namespace,
+			Labels:      tupWas.GenWasLabels(),
+			Annotations: tupWas.GenIngressAnnotation(),
 		},
 		Spec: networkingv1beta1.IngressSpec{
 			Rules: []networkingv1beta1.IngressRule{{
