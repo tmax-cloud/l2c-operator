@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"github.com/operator-framework/operator-sdk/pkg/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -53,6 +54,11 @@ type TupDBTo struct {
 
 	// Password for target DB
 	Password string `json:"password,omitempty"`
+
+
+
+	// Current DB SID
+	Sid string `json:"sid,omitempty"`
 }
 
 // TupDBStatus defines the observed state of TupDB
@@ -60,6 +66,16 @@ type TupDBStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	Conditions []status.Condition `json:"conditions,omitempty"`
+
+	LastAnalyzeResult string `json:"lastAnalyzeResult,omitempty"`
+
+	// Target DB host
+	// +kubebuilder:validation:Pattern=(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
+	TargetHost string `json:"targetHost,omitempty"`
+
+	// Current DB port
+	TargetPort int32 `json:"targetPort,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -3,8 +3,6 @@ package tupdb
 import (
 	"fmt"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strconv"
 
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
@@ -66,7 +64,7 @@ func dbService(dbInstance *tmaxv1.TupDB) (*corev1.Service, error) {
 			Labels:    dbLabels(dbInstance),
 		},
 		Spec: corev1.ServiceSpec{
-			Type: "ClusterIP", // Should it be configurable? currently no...I think
+			Type: "LoadBalancer", // Should it be configurable? currently no...I think
 			Ports: []corev1.ServicePort{
 				{
 					Port: port,
@@ -141,43 +139,6 @@ func dbDeploy(dbInstance *tmaxv1.TupDB) (*appsv1.Deployment, error) {
 			},
 		},
 	}, nil
-}
-
-func dbIngress(dbInstance *tmaxv1.TupDB) (*networkingv1beta1.Ingress, error) {
-	port, _ := dbPort(dbInstance)
-	return &networkingv1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbResourceName(dbInstance),
-			Namespace: dbInstance.Namespace,
-			Labels:    dbLabels(dbInstance),
-		},
-		Spec: networkingv1beta1.IngressSpec{
-			Rules: []networkingv1beta1.IngressRule{{
-				Host: IngressDefault,
-				IngressRuleValue: networkingv1beta1.IngressRuleValue{
-					HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-						Paths: []networkingv1beta1.HTTPIngressPath{{
-							Backend: networkingv1beta1.IngressBackend{
-								ServiceName: dbResourceName(dbInstance),
-								ServicePort: intstr.IntOrString{Type: intstr.Int, IntVal: port},
-							},
-						}},
-					},
-				},
-			}},
-		},
-	}, nil
-}
-
-func checkIngressAndUpdate(ingInstance *networkingv1beta1.Ingress) bool {
-	if ingInstance.Spec.Rules[0].Host != IngressDefault {
-		return true
-	}
-	if len(ingInstance.Status.LoadBalancer.Ingress) != 0 && len(ingInstance.Spec.Rules) == 1 && ingInstance.Spec.Rules[0].Host == IngressDefault {
-		ingInstance.Spec.Rules[0].Host = fmt.Sprintf("%s.%s.%s.nip.io", ingInstance.Name, ingInstance.Namespace, ingInstance.Status.LoadBalancer.Ingress[0].IP)
-		return true
-	}
-	return false
 }
 
 // Supporting functions

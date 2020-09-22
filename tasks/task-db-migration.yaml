@@ -1,14 +1,9 @@
 apiVersion: tekton.dev/v1alpha1
 kind: ClusterTask
 metadata:
-  name: l2c-db-migration
+  name: l2c-migration-db
 spec:
   params:
-    - name: DO_MIGRATE_DB
-      description: Whether or not to migrate DB (TRUE/FALSE)
-      default: 'TRUE'
-    - name: CM_NAME
-      description: ConfigMap name conatining objects for DB deploy
     - name: SECRET_NAME
       description: Secret name conatining source/target db info
     - name: SOURCE_TYPE
@@ -28,11 +23,6 @@ spec:
       image: 192.168.6.110:5000/tup-tibero:latest
       imagePullPolicy: Always
       script: |
-        if [ "$(params.DO_MIGRATE_DB)" != "TRUE" ]; then
-            echo "Skip DB migration";
-            exit 0;
-        fi
-
         ./TupTibero -c \
         SOURCE_TYPE=$(params.SOURCE_TYPE) \
         SOURCE_IP=$(params.SOURCE_HOST) \
