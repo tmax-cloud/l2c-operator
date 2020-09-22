@@ -133,7 +133,7 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, pvc); err != nil {
 		if errors.IsNotFound(err) {
-			pvc, err = dbPvc(instance)
+			pvc, _ = dbPvc(instance)
 			if err := r.createAndUpdateStatus(pvc, instance, "error create PVC"); err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	service := &corev1.Service{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service); err != nil {
 		if errors.IsNotFound(err) {
-			service, err = dbService(instance)
+			service, _ = dbService(instance)
 			if err := r.createAndUpdateStatus(service, instance, "error create Service"); err != nil {
 				return err
 			}
@@ -156,9 +156,9 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	logger.Info("Service Created")
 
 	secret := &corev1.Secret{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service); err != nil {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, secret); err != nil {
 		if errors.IsNotFound(err) {
-			secret, err = dbSecret(instance)
+			secret, _ = dbSecret(instance)
 			if err := r.createAndUpdateStatus(secret, instance, "error create Secret"); err != nil {
 				return err
 			}
@@ -168,10 +168,11 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 			return err
 		}
 	}
+
 	deployment := &appsv1.Deployment{}
-	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service); err != nil {
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, deployment); err != nil {
 		if errors.IsNotFound(err) {
-			deployment, err = dbDeploy(instance)
+			deployment, _ = dbDeploy(instance)
 			if err := r.createAndUpdateStatus(deployment, instance, "error create Deployment"); err != nil {
 				return err
 			}
