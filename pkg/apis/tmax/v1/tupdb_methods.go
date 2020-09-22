@@ -51,7 +51,7 @@ func (s *TupDBStatus) SetDefaultConditions() {
 		LastTransitionTime: metav1.Now(),
 	}
 	for _, t := range tupDBConditions {
-		utils.NewTupLogger(TupDB{},"unknown", "unknown").Info("Set Default", "type", t)
+		utils.NewTupLogger(TupDB{}, "unknown", "unknown").Info("Set Default", "type", t)
 		cond.Type = t
 		if t == DBConditionKeyDBSucceed {
 			cond.Status = corev1.ConditionUnknown

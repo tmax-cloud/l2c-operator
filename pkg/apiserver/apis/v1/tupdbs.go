@@ -10,6 +10,7 @@ import (
 	"github.com/tmax-cloud/l2c-operator/internal/wrapper"
 	"github.com/tmax-cloud/l2c-operator/pkg/apis"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
+	tupdbcontroller "github.com/tmax-cloud/l2c-operator/pkg/controller/tupdb"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	tupdbcontroller "github.com/tmax-cloud/l2c-operator/pkg/controller/tupdb"
 )
 
 const (

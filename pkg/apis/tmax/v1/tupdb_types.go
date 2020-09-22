@@ -55,8 +55,6 @@ type TupDBTo struct {
 	// Password for target DB
 	Password string `json:"password,omitempty"`
 
-
-
 	// Current DB SID
 	Sid string `json:"sid,omitempty"`
 }

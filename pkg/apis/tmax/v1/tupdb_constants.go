@@ -39,12 +39,12 @@ const (
 
 // Params for analyze
 const (
-	DBAnalyzePipelineParamTarget = "analyze-target"
-	DBAnalyzePipelineParamFileType = "analyze-file-type"
-	DBAnalyzePipelineParamFileSyntax = "analyze-file-syntax"
+	DBAnalyzePipelineParamTarget        = "analyze-target"
+	DBAnalyzePipelineParamFileType      = "analyze-file-type"
+	DBAnalyzePipelineParamFileSyntax    = "analyze-file-syntax"
 	DBAnalyzePipelineParamFileExtension = "analyze-file-extension"
-	DBAnalyzePipelineParamFileSearch = "analyze-file-search"
-	DBAnalyzePipelineParamFileLocation = "analyze-file-location"
-	DBAnalyzePipelineParamFileCharset = "analyze-file-charset"
+	DBAnalyzePipelineParamFileSearch    = "analyze-file-search"
+	DBAnalyzePipelineParamFileLocation  = "analyze-file-location"
+	DBAnalyzePipelineParamFileCharset   = "analyze-file-charset"
 	DBAnalyzePipelineParamReportOptions = "analyze-report-options"
 )

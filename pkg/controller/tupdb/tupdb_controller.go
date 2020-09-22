@@ -130,7 +130,6 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	// [TODO] Get or Create
 	logger := utils.NewTupLogger(tmaxv1.TupDB{}, instance.Namespace, instance.Name)
 
-
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, pvc); err != nil {
 		if errors.IsNotFound(err) {
