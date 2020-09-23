@@ -35,6 +35,10 @@ func AddV1Apis(parent *wrapper.RouterWrapper) error {
 		return err
 	}
 
+	if err := AddTupDBApis(namespaceWrapper); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -51,6 +55,14 @@ func versionHandler(w http.ResponseWriter, _ *http.Request) {
 		},
 		{
 			Name:       fmt.Sprintf("%s/run", TupWasKind),
+			Namespaced: true,
+		},
+		{
+			Name:       fmt.Sprintf("%s/analyze", TupDbKind),
+			Namespaced: true,
+		},
+		{
+			Name:       fmt.Sprintf("%s/migrate", TupDbKind),
 			Namespaced: true,
 		},
 	}

@@ -2,7 +2,7 @@ apiVersion: tmax.io/v1
 kind: TupDB
 metadata:
     name: tup-db-example
-    namespace: db-test
+    namespace: l2c-system
 spec:
     from:
         type: oracle

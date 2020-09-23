@@ -2,9 +2,11 @@ package tupdb
 
 import (
 	"context"
+	"fmt"
 	"github.com/operator-framework/operator-sdk/pkg/status"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,7 +54,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner TupDB
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &tmaxv1.TupDB{},
 	})
@@ -98,82 +100,141 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
+	if len(instance.Status.Conditions) == 0 {
+		instance.Status.SetDefaults()
+	}
 	// [TODO] TupDB Analyzer
 
 	// [TODO] Hanging
 
 	// [TODO] deploy TiberoDB
 	if err = r.makeTargetDBReady(instance); err != nil {
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 
-	ingress, _ := dbIngress(instance)
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: ingress.Name, Namespace: ingress.Namespace}, ingress)
-	if err != nil && !errors.IsNotFound(err) {
-		reqLogger.Error(err, "There is no ingress yet")
-		return reconcile.Result{Requeue: true}, nil
+	service := &corev1.Service{}
+	_ = r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service)
+
+	if err := updateTupDBStatus(instance, service); err != nil {
+		reqLogger.Error(err, "DB Update failed")
+		return reconcile.Result{}, err
 	}
-	if checkIngressAndUpdate(ingress) {
-		reqLogger.Info("Ingress will be updated")
-		if err := r.client.Update(context.TODO(), ingress); err != nil {
-			return reconcile.Result{}, nil
-		}
-	} else {
-		reqLogger.Info("Ingress is not well created")
-		return reconcile.Result{Requeue: true}, nil
+
+	migratePipeline := MigratePipeline(instance)
+	if err := r.createAndUpdateStatus(migratePipeline, instance, "error getting/creating pipeline"); err != nil {
+		reqLogger.Error(err, "Error occurred")
+		return reconcile.Result{}, err
+	}
+
+	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
 }
 
 func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
-	// [TODO] Refactoring
+	// [TODO] Get or Create
 	logger := utils.NewTupLogger(tmaxv1.TupDB{}, instance.Namespace, instance.Name)
-	pvc, err := dbPvc(instance)
-	if err != nil {
-		return err
-	}
-	if err = r.createAndUpdateStatus(pvc, instance, "error create PVC"); err != nil {
-		return err
+
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, pvc); err != nil {
+		if errors.IsNotFound(err) {
+			pvc, _ = dbPvc(instance)
+			if err := r.createAndUpdateStatus(pvc, instance, "error create PVC"); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	logger.Info("PVC Created")
-
-	service, err := dbService(instance)
-	if err != nil {
-		return err
-	}
-	if err = r.createAndUpdateStatus(service, instance, "error create Service"); err != nil {
-		return err
+	service := &corev1.Service{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service); err != nil {
+		if errors.IsNotFound(err) {
+			service, _ = dbService(instance)
+			if err := r.createAndUpdateStatus(service, instance, "error create Service"); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	logger.Info("Service Created")
 
-	secret, err := dbSecret(instance)
-	if err != nil {
-		logger.Error(err, "Secret err")
-		return err
-	}
-	if err = r.createAndUpdateStatus(secret, instance, "error create Secret"); err != nil {
-		return err
-	}
-	logger.Info("Secret Created")
+	secret := &corev1.Secret{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, secret); err != nil {
+		if errors.IsNotFound(err) {
+			secret, _ = dbDeploySecret(instance)
+			if err := r.createAndUpdateStatus(secret, nil, "error create Secret"); err != nil {
+				return err
+			}
+			logger.Info("Secret Created")
 
-	deployment, err := dbDeploy(instance)
-	if err != nil {
-		return err
+		} else {
+			return err
+		}
 	}
-	if err = r.createAndUpdateStatus(deployment, instance, "error create Deployment"); err != nil {
-		return err
+
+	tupSecret := &corev1.Secret{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: tmaxv1.TupDBSecretName, Namespace: instance.Namespace}, tupSecret); err != nil {
+		if errors.IsNotFound(err) {
+			secret, _ = tupDBSecret(instance)
+			if err := r.createAndUpdateStatus(secret, instance, "error create Secret"); err != nil {
+				return err
+			}
+			logger.Info("Secret Created")
+
+		} else {
+			return err
+		}
+	}
+
+	deployment := &appsv1.Deployment{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, deployment); err != nil {
+		if errors.IsNotFound(err) {
+			deployment, _ = dbDeploy(instance)
+			if err := r.createAndUpdateStatus(deployment, instance, "error create Deployment"); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	logger.Info("Deployment Created")
+	// [TODO] Check Status
 
-	ingress, err := dbIngress(instance)
-	if err != nil {
+	return nil
+}
+
+func updateTupDBStatus(instance *tmaxv1.TupDB, service *corev1.Service) error {
+	err := fmt.Errorf("update TupDB %s failed", instance.Name)
+
+	if service == nil {
 		return err
 	}
-	if err = r.createAndUpdateStatus(ingress, instance, "error create Ingress"); err != nil {
+
+	switch service.Spec.Type {
+	case corev1.ServiceTypeLoadBalancer:
+		if len(service.Status.LoadBalancer.Ingress) == 0 {
+			return err
+		}
+		instance.Status.TargetHost = service.Status.LoadBalancer.Ingress[0].IP
+	default:
 		return err
 	}
-	logger.Info("Ingress Created")
+
+	if len(service.Spec.Ports) == 0 {
+		return err
+	}
+	instance.Status.TargetPort = service.Spec.Ports[0].Port
+
+	log.Info("Check Target Info in  function", "IP", instance.Status.TargetHost, "Port", instance.Status.TargetPort)
+	if instance.Status.TargetPort == 0 || instance.Status.TargetHost == "" {
+		log.Info("Error Check Target Info in  function", "IP", instance.Status.TargetHost, "Port", instance.Status.TargetPort)
+		return err
+	}
 
 	return nil
 }
@@ -189,36 +250,28 @@ func (r *ReconcileTupDB) createAndUpdateStatus(obj interface{}, instance *tmaxv1
 }
 
 func (r *ReconcileTupDB) updateErrorStatus(instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
-	//if err := r.setCondition(instance, key, stat, reason, message); err != nil {
-	//	return err
-	//}
+	if err := r.setCondition(instance, key, stat, reason, message); err != nil {
+		return err
+	}
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return err
 	}
 	return nil
 }
 
-//func (r *ReconcileTupDB) setCondition(instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
-//	arr, err := r.setConditionField(instance.Status.Conditions, instance, key, stat, reason, message)
-//	if err != nil {
-//		return err
-//	}
-//
-//	instance.Status.Conditions = arr
-//
-//	return nil
-//}
-//
-//func (r *ReconcileTupDB) setConditionField(field []status.Condition, instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) ([]status.Condition, error) {
-//	curCond, found := instance.Status.GetConditionField(field, key)
-//	if !found {
-//		err := fmt.Errorf("cannot find conditions %s", string(key))
-//		log.Error(err, "")
-//		return nil, err
-//	}
-//	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
-//		return field, nil
-//	}
-//
-//	return instance.Status.SetConditionField(field, key, stat, reason, message), nil
-//}
+func (r *ReconcileTupDB) setCondition(instance *tmaxv1.TupDB, key status.ConditionType, stat corev1.ConditionStatus, reason, message string) error {
+	curCond, found := instance.Status.GetCondition(key)
+	if !found {
+		err := fmt.Errorf("cannot find conditions %s", string(key))
+		log.Error(err, "")
+		return err
+	}
+
+	if curCond.Status == stat && curCond.Reason == status.ConditionReason(reason) && curCond.Message == message {
+		return nil
+	}
+
+	instance.Status.Conditions = instance.Status.SetCondition(key, stat, reason, message)
+
+	return nil
+}

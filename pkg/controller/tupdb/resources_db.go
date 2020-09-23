@@ -3,8 +3,6 @@ package tupdb
 import (
 	"fmt"
 	"github.com/tmax-cloud/l2c-operator/internal/utils"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strconv"
 
 	tmaxv1 "github.com/tmax-cloud/l2c-operator/pkg/apis/tmax/v1"
@@ -66,7 +64,7 @@ func dbService(dbInstance *tmaxv1.TupDB) (*corev1.Service, error) {
 			Labels:    dbLabels(dbInstance),
 		},
 		Spec: corev1.ServiceSpec{
-			Type: "ClusterIP", // Should it be configurable? currently no...I think
+			Type: "LoadBalancer", // Should it be configurable? currently no...I think
 			Ports: []corev1.ServicePort{
 				{
 					Port: port,
@@ -77,10 +75,31 @@ func dbService(dbInstance *tmaxv1.TupDB) (*corev1.Service, error) {
 	}, nil
 }
 
-func dbSecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
+func tupDBSecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
+	logger := utils.NewTupLogger(tmaxv1.TupDB{}, dbInstance.Namespace, dbInstance.Name)
+	secretVal, err := tupDbSecretValues(dbInstance)
+
+	if err != nil {
+		logger.Error(err, "Db Secret Error")
+		return nil, err
+	}
+
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tmaxv1.TupDBSecretName,
+			Namespace: dbInstance.Namespace,
+		},
+		StringData: secretVal,
+	}, nil
+}
+
+func dbDeploySecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
 	logger := utils.NewTupLogger(tmaxv1.TupDB{}, dbInstance.Namespace, dbInstance.Name)
 	secretVal, err := dbSecretValues(dbInstance)
-
 	if err != nil {
 		logger.Error(err, "Db Secret Error")
 		return nil, err
@@ -143,43 +162,6 @@ func dbDeploy(dbInstance *tmaxv1.TupDB) (*appsv1.Deployment, error) {
 	}, nil
 }
 
-func dbIngress(dbInstance *tmaxv1.TupDB) (*networkingv1beta1.Ingress, error) {
-	port, _ := dbPort(dbInstance)
-	return &networkingv1beta1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dbResourceName(dbInstance),
-			Namespace: dbInstance.Namespace,
-			Labels:    dbLabels(dbInstance),
-		},
-		Spec: networkingv1beta1.IngressSpec{
-			Rules: []networkingv1beta1.IngressRule{{
-				Host: IngressDefault,
-				IngressRuleValue: networkingv1beta1.IngressRuleValue{
-					HTTP: &networkingv1beta1.HTTPIngressRuleValue{
-						Paths: []networkingv1beta1.HTTPIngressPath{{
-							Backend: networkingv1beta1.IngressBackend{
-								ServiceName: dbResourceName(dbInstance),
-								ServicePort: intstr.IntOrString{Type: intstr.Int, IntVal: port},
-							},
-						}},
-					},
-				},
-			}},
-		},
-	}, nil
-}
-
-func checkIngressAndUpdate(ingInstance *networkingv1beta1.Ingress) bool {
-	if ingInstance.Spec.Rules[0].Host != IngressDefault {
-		return true
-	}
-	if len(ingInstance.Status.LoadBalancer.Ingress) != 0 && len(ingInstance.Spec.Rules) == 1 && ingInstance.Spec.Rules[0].Host == IngressDefault {
-		ingInstance.Spec.Rules[0].Host = fmt.Sprintf("%s.%s.%s.nip.io", ingInstance.Name, ingInstance.Namespace, ingInstance.Status.LoadBalancer.Ingress[0].IP)
-		return true
-	}
-	return false
-}
-
 // Supporting functions
 func dbResourceName(dbInstance *tmaxv1.TupDB) string {
 	return fmt.Sprintf("%s-db", dbInstance.Name)
@@ -204,6 +186,24 @@ func dbPort(dbInstance *tmaxv1.TupDB) (int32, error) {
 	default:
 		return 0, fmt.Errorf("spec.db.to.type(%s) not supported", dbInstance.Spec.To.Type)
 	}
+}
+
+func tupDbSecretValues(dbInstance *tmaxv1.TupDB) (map[string]string, error) {
+	// [TODO] Decrypt Password
+	//pw, err := utils.DecryptPassword(dbInstance.Spec.To.Password)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	values := map[string]string{}
+	values["source-user"] = dbInstance.Spec.From.User
+	values["source-password"] = dbInstance.Spec.From.Password
+	values["source-sid"] = dbInstance.Spec.From.Sid
+	values["target-user"] = dbInstance.Spec.To.User
+	values["target-password"] = dbInstance.Spec.To.Password
+	values["target-sid"] = dbInstance.Spec.To.Sid
+
+	return values, nil
 }
 
 func dbSecretValues(dbInstance *tmaxv1.TupDB) (map[string]string, error) {
