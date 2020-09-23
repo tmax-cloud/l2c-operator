@@ -75,10 +75,31 @@ func dbService(dbInstance *tmaxv1.TupDB) (*corev1.Service, error) {
 	}, nil
 }
 
-func dbSecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
+func tupDBSecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
+	logger := utils.NewTupLogger(tmaxv1.TupDB{}, dbInstance.Namespace, dbInstance.Name)
+	secretVal, err := tupDbSecretValues(dbInstance)
+
+	if err != nil {
+		logger.Error(err, "Db Secret Error")
+		return nil, err
+	}
+
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "Secret",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      tmaxv1.TupDBSecretName,
+			Namespace: dbInstance.Namespace,
+		},
+		StringData: secretVal,
+	}, nil
+}
+
+func dbDeploySecret(dbInstance *tmaxv1.TupDB) (*corev1.Secret, error) {
 	logger := utils.NewTupLogger(tmaxv1.TupDB{}, dbInstance.Namespace, dbInstance.Name)
 	secretVal, err := dbSecretValues(dbInstance)
-
 	if err != nil {
 		logger.Error(err, "Db Secret Error")
 		return nil, err
@@ -165,6 +186,24 @@ func dbPort(dbInstance *tmaxv1.TupDB) (int32, error) {
 	default:
 		return 0, fmt.Errorf("spec.db.to.type(%s) not supported", dbInstance.Spec.To.Type)
 	}
+}
+
+func tupDbSecretValues(dbInstance *tmaxv1.TupDB) (map[string]string, error) {
+	// [TODO] Decrypt Password
+	//pw, err := utils.DecryptPassword(dbInstance.Spec.To.Password)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	values := map[string]string{}
+	values["source-user"] = dbInstance.Spec.From.User
+	values["source-password"] = dbInstance.Spec.From.Password
+	values["source-sid"] = dbInstance.Spec.From.Sid
+	values["target-user"] = dbInstance.Spec.To.User
+	values["target-password"] = dbInstance.Spec.To.Password
+	values["target-sid"] = dbInstance.Spec.To.Sid
+
+	return values, nil
 }
 
 func dbSecretValues(dbInstance *tmaxv1.TupDB) (map[string]string, error) {

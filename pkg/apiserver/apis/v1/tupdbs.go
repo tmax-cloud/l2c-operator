@@ -127,7 +127,6 @@ func tupDBApiHandler(w http.ResponseWriter, req *http.Request, apiType ApiType) 
 		_ = utils.RespondError(w, http.StatusBadRequest, fmt.Sprintf("Api type %s is not supported", string(apiType)))
 		return
 	}
-	utils.GetTupLogger(tmaxv1.TupDB{}, "unknown", "unknown").Info("Check PIPELINERUN", "condFound", condFound, "cond", cond, "pipelineRun", pipelineRun)
 	if !condFound || cond == nil || pipelineRun == nil {
 		_ = utils.RespondError(w, http.StatusAccepted, "TupDB may not be ready yet")
 		return

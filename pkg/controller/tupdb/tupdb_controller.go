@@ -110,8 +110,17 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 
 	// [TODO] deploy TiberoDB
 	if err = r.makeTargetDBReady(instance); err != nil {
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
+
+	service := &corev1.Service{}
+	_ = r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, service)
+
+	if err := updateTupDBStatus(instance, service); err != nil {
+		reqLogger.Error(err, "DB Update failed")
+		return reconcile.Result{}, err
+	}
+
 	migratePipeline := MigratePipeline(instance)
 	if err := r.createAndUpdateStatus(migratePipeline, instance, "error getting/creating pipeline"); err != nil {
 		reqLogger.Error(err, "Error occurred")
@@ -121,7 +130,6 @@ func (r *ReconcileTupDB) Reconcile(request reconcile.Request) (reconcile.Result,
 	if err := r.client.Status().Update(context.TODO(), instance); err != nil {
 		return reconcile.Result{}, err
 	}
-	log.Info("Check Target Info", "IP", instance.Status.TargetHost, "Port", instance.Status.TargetPort)
 
 	return reconcile.Result{}, nil
 }
@@ -158,7 +166,21 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	secret := &corev1.Secret{}
 	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: dbResourceName(instance), Namespace: instance.Namespace}, secret); err != nil {
 		if errors.IsNotFound(err) {
-			secret, _ = dbSecret(instance)
+			secret, _ = dbDeploySecret(instance)
+			if err := r.createAndUpdateStatus(secret, nil, "error create Secret"); err != nil {
+				return err
+			}
+			logger.Info("Secret Created")
+
+		} else {
+			return err
+		}
+	}
+
+	tupSecret := &corev1.Secret{}
+	if err := r.client.Get(context.TODO(), types.NamespacedName{Name: tmaxv1.TupDBSecretName, Namespace: instance.Namespace}, tupSecret); err != nil {
+		if errors.IsNotFound(err) {
+			secret, _ = tupDBSecret(instance)
 			if err := r.createAndUpdateStatus(secret, instance, "error create Secret"); err != nil {
 				return err
 			}
@@ -183,17 +205,16 @@ func (r *ReconcileTupDB) makeTargetDBReady(instance *tmaxv1.TupDB) error {
 	logger.Info("Deployment Created")
 	// [TODO] Check Status
 
-	if err := updateTupDBSpec(instance, service); err != nil {
-		logger.Error(err, "DB Update failed")
-		return err
-	}
-	log.Info("Check Target Info in ready", "IP", instance.Status.TargetHost, "Port", instance.Status.TargetPort)
-
 	return nil
 }
 
-func updateTupDBSpec(instance *tmaxv1.TupDB, service *corev1.Service) error {
+func updateTupDBStatus(instance *tmaxv1.TupDB, service *corev1.Service) error {
 	err := fmt.Errorf("update TupDB %s failed", instance.Name)
+
+	if service == nil {
+		return err
+	}
+
 	switch service.Spec.Type {
 	case corev1.ServiceTypeLoadBalancer:
 		if len(service.Status.LoadBalancer.Ingress) == 0 {

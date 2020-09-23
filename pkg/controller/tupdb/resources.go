@@ -8,8 +8,7 @@ import (
 	"strconv"
 )
 
-/*
-func analyzePipeline(tupDB *tmaxv1.TupDB) *tektonv1.Pipeline {
+func AnalyzePipeline(tupDB *tmaxv1.TupDB) *tektonv1.Pipeline {
 	return &tektonv1.Pipeline{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tupDB.GenAnalyzePipelineName(),
@@ -59,8 +58,6 @@ func analyzePipeline(tupDB *tmaxv1.TupDB) *tektonv1.Pipeline {
 		},
 	}
 }
-
-*/
 
 func MigratePipeline(tupDB *tmaxv1.TupDB) *tektonv1.Pipeline {
 	return &tektonv1.Pipeline{

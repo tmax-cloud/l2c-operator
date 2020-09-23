@@ -9,6 +9,10 @@ const (
 )
 
 const (
+	TupDBSecretName = "tup-db-secret"
+)
+
+const (
 	TaskNameAnalyzeDB = "l2c-tup-db"
 	TaskNameMigrateDB = "l2c-migration-db"
 )

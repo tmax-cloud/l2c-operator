@@ -72,7 +72,7 @@ type TupDBStatus struct {
 	// +kubebuilder:validation:Pattern=(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])
 	TargetHost string `json:"targetHost,omitempty"`
 
-	// Current DB port
+	// Target DB port
 	TargetPort int32 `json:"targetPort,omitempty"`
 }
 
