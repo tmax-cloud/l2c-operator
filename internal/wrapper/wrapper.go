@@ -47,13 +47,14 @@ func (w *RouterWrapper) Add(child *RouterWrapper) error {
 
 	child.Router = w.Router.PathPrefix(child.SubPath).Subrouter()
 
-	if child.Methods != nil {
-		child.Router.Methods(child.Methods...)
-	}
-
 	if child.Handler != nil {
-		child.Router.HandleFunc("/", child.Handler)
-		w.Router.HandleFunc(child.SubPath, child.Handler)
+		if len(child.Methods) > 0 {
+			child.Router.Methods(child.Methods...).Subrouter().HandleFunc("/", child.Handler)
+			w.Router.Methods(child.Methods...).Subrouter().HandleFunc(child.SubPath, child.Handler)
+		} else {
+			child.Router.HandleFunc("/", child.Handler)
+			w.Router.HandleFunc(child.SubPath, child.Handler)
+		}
 	}
 
 	return nil
