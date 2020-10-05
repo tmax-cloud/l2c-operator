@@ -19,7 +19,7 @@ const (
 
 func Authorize(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if err := authorize(w, req); err != nil {
+		if err := authorize(req); err != nil {
 			_ = utils.RespondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
@@ -33,10 +33,9 @@ func Authorize(h http.Handler) http.Handler {
 	})
 }
 
-func authorize(w http.ResponseWriter, req *http.Request) error {
+func authorize(req *http.Request) error {
 	if req.TLS == nil || len(req.TLS.PeerCertificates) == 0 {
-		_ = utils.RespondError(w, http.StatusBadRequest, "is not https or there is no peer certificate")
-		return fmt.Errorf("")
+		return fmt.Errorf("is not https or there is no peer certificate")
 	}
 	return nil
 }
